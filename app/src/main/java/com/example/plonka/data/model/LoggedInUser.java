@@ -5,16 +5,24 @@ package com.example.plonka.data.model;
  */
 public class LoggedInUser {
 
-    private String userId;
+    //private long personalNumber;
+    private Integer accountId;
     private String displayName;
 
-    public LoggedInUser(String userId, String displayName) {
-        this.userId = userId;
-        this.displayName = displayName;
+    public LoggedInUser(/*long user, */Integer account, String name) {
+        //this.personalNumber = user;
+        this.accountId = account;
+        this.displayName = name;
     }
 
-    public String getUserId() {
-        return userId;
+    /*
+    public long getPersonalNumber() {
+        return personalNumber;
+    }
+    */
+
+    public Integer getAccountId() {
+        return accountId;
     }
 
     public String getDisplayName() {

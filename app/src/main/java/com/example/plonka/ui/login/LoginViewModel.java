@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import android.util.Log;
 import android.util.Patterns;
 
 import com.example.plonka.data.LoginRepository;
@@ -16,6 +17,7 @@ public class LoginViewModel extends ViewModel {
     private MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
     private MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
     private LoginRepository loginRepository;
+    private String LOG_TAG = "PLONKA_LOGINVIEWMODEL";
 
     LoginViewModel(LoginRepository loginRepository) {
         this.loginRepository = loginRepository;
@@ -25,23 +27,25 @@ public class LoginViewModel extends ViewModel {
         return loginFormState;
     }
 
-    LiveData<LoginResult> getLoginResult() {
-        return loginResult;
-    }
+    LiveData<LoginResult> getLoginResult() { return loginResult; }
 
-    public void login(String username, String password) {
-        // can be launched in a separate asynchronous job
-        Result<LoggedInUser> result = loginRepository.login(username, password);
-
+    // Attempt to log in the user with specified personal number and password
+    public void login(long user, String password) {
+        Log.d(LOG_TAG, "login() called");
+        Result<LoggedInUser> result = loginRepository.login(user, password);
         if (result instanceof Result.Success) {
+            Log.d(LOG_TAG, "login() result is success");
             LoggedInUser data = ((Result.Success<LoggedInUser>) result).getData();
-            loginResult.setValue(new LoginResult(new LoggedInUserView(data.getDisplayName())));
-        } else {
-            loginResult.setValue(new LoginResult(R.string.login_failed));
+            loginResult.setValue(new LoginResult(new LoggedInUserView(data.getDisplayName()))); // Only need display name for UI purposes, id is hidden from user
+        }
+        else if (result instanceof Result.Error) {
+            Log.d(LOG_TAG, "login() result is failure");
+            String errorMsg = ((Result.Error) result).getError().toString();
+            loginResult.setValue(new LoginResult(errorMsg)); // Pass error string printed by login_user.php back to UI
         }
     }
 
-    public void loginDataChanged(String username, String password) {
+    public void loginDataChanged(long username, String password) {
         if (!isUserNameValid(username)) {
             loginFormState.setValue(new LoginFormState(R.string.invalid_username, null));
         } else if (!isPasswordValid(password)) {
@@ -51,20 +55,20 @@ public class LoginViewModel extends ViewModel {
         }
     }
 
-    // A placeholder username validation check
-    private boolean isUserNameValid(String username) {
-        if (username == null) {
-            return false;
-        }
-        if (username.contains("@")) {
-            return Patterns.EMAIL_ADDRESS.matcher(username).matches();
+    // A simple username validation check
+    private boolean isUserNameValid(long username) {
+        // OK if username is 10 digits (personal number), EXTENSION: Use control numbers to check if valid
+        if (username > 190000000000L) {
+            Log.d(LOG_TAG, "isUserNameValid("+Long.toString(username)+")=true");
+            return true;
         } else {
-            return !username.trim().isEmpty();
+            Log.d(LOG_TAG, "isUserNameValid("+Long.toString(username)+")=false");
+            return false;
         }
     }
 
-    // A placeholder password validation check
+    // A simple password validation check, require at least 8 chars
     private boolean isPasswordValid(String password) {
-        return password != null && password.trim().length() > 5;
+        return password != null && password.trim().length() > 8;
     }
 }
