@@ -1,5 +1,7 @@
 package com.example.plonka;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
@@ -10,8 +12,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.os.Handler;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -26,78 +35,140 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
-
+import java.util.regex.Pattern;
 
 
 public class RegisterUserActivity extends AppCompatActivity {
 
     private String LOG_TAG = "PLONKA_REGISTER_USER";
 
+    private EditText personal_number;
     private EditText name;
     private EditText email;
-    private EditText webpage;
-    private EditText comment;
+    private EditText phone;
+    private EditText password;
+    private EditText password_confirm;
+    private CheckBox checkbox_terms;
+    private Button continueButton;
 
     private String str_name;
     private String str_email;
-    private String str_webpage;
-    private String str_comment;
+    private String str_personal_number;
+    private String str_phone;
+    private String str_password;
+    private String str_password_confirm;
+    private boolean terms_accepted;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register_user);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
 
-    }
-}
-        /*
-
-        // TODO: Get actual views
+        personal_number = findViewById(R.id.editTextPersonalNumber); // EXTENSION: Use personal number to automatically fetch name, mobile, etc
         name = findViewById(R.id.editTextName);
         email = findViewById(R.id.editTextEmail);
-        webpage = findViewById(R.id.editTextWebpage);
-        comment = findViewById(R.id.editTextComment);
+        phone = findViewById(R.id.editTextMobile);
+        password = findViewById(R.id.editTextPassword);
+        password_confirm = findViewById(R.id.editTextPasswordConfirm);
+        checkbox_terms = findViewById(R.id.checkBoxTerms);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        // Make links clickable in checkbox_terms, https://www.tutorialspoint.com/how-to-set-the-part-of-the-android-textview-as-clickable
+        String checkbox_text = getResources().getString(R.string.accept_terms);
+        SpannableString spannableString = new SpannableString(checkbox_text);
+        ClickableSpan clickableSpanTermsAndConditions = new ClickableSpan() {
+            @Override
+            public void onClick(View widget) {
+                Log.d(LOG_TAG, "Clicked Terms and Conditions link");
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com")));
+            }
+        };
+        ClickableSpan clickableSpanPrivacyPolicy = new ClickableSpan() {
+            @Override
+            public void onClick(View widget) {
+                Log.d(LOG_TAG, "Clicked Privacy Policy link");
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com")));
+            }
+        };
+        spannableString.setSpan(clickableSpanTermsAndConditions, 27,45, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        spannableString.setSpan(clickableSpanPrivacyPolicy, 50,64, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        checkbox_terms.setText(spannableString);
+        checkbox_terms.setMovementMethod(LinkMovementMethod.getInstance());
+
+        continueButton = findViewById(R.id.buttonContinue);
+        continueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.i(LOG_TAG, "User clicked fab");
-                Snackbar.make(view, "Sending to database!", Snackbar.LENGTH_LONG).show();
-                postToDb();
-                Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    public void run() {
-                        Log.i(LOG_TAG, "Returning to main activity");
-                        finish();
-                    }
-                }, 3500);   //3.5 seconds, enough time to display a Snackbar.LENGTH_LONG before exiting activity
+                Log.i(LOG_TAG, "User clicked Continue button");
+                gatherContent();
+                if (validateRegistrationDetails()){
+                    registerUserToDb();
+                }
             }
         });
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
+    // Check whether provided strings are valid. Show error msg if not.
+    public boolean validateRegistrationDetails(){
+        boolean valid = true;
+        String feedbackMsg = "Registering user...";
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(str_email).matches()){
+            // Appears to be a valid email
+            feedbackMsg = "ERROR: Invalid email format";
+            valid = false;
+        }
+        else if (str_password.length() < 8){
+            feedbackMsg = "ERROR: Password must be 8+ chars";
+            valid = false;
+        }
+        else if (!str_password.equals(str_password_confirm)){
+            feedbackMsg = "ERROR: Passwords must match";
+            Log.d(LOG_TAG, "Password mismatch");
+            valid = false;
+        }
+        else if (!str_phone.matches("^(\\+467|07)[0-9]{8}$")){
+            feedbackMsg = "ERROR: Phone number format is incorrect.";
+            valid = false;
+        }
+        else if (!str_personal_number.matches("^[0-9]{12}$")){
+            feedbackMsg = "ERROR: Personal number must be 12 digits";
+            valid = false;
+        }
+        else if (!terms_accepted){
+            feedbackMsg = "ERROR: Accept terms and conditions";
+            valid = false;
+        }
+
+        Snackbar.make(findViewById(android.R.id.content), feedbackMsg, Snackbar.LENGTH_SHORT).show();
+        return valid;
+    }
+
     public void gatherContent() {
         str_name = name.getText().toString();
         str_email = email.getText().toString();
-        str_webpage = webpage.getText().toString();
-        str_comment = comment.getText().toString();
+        str_personal_number = personal_number.getText().toString();
+        str_phone = phone.getText().toString();
+        str_password = password.getText().toString();
+        str_password_confirm = password_confirm.getText().toString();
+        terms_accepted = checkbox_terms.isChecked();
 
-        Log.i(LOG_TAG, "Gathered the following message data:\n  - "
+        Log.d(LOG_TAG, "Gathered the following message data:\n  - "
                 +str_name+"\n  - "
                 +str_email+"\n  - "
-                +str_webpage+"\n  - "
-                +str_comment);
+                +str_personal_number+"\n  - "
+                +str_phone+"\n  - "
+                +str_password+"\n  - "
+                +str_password_confirm+"\n  - "
+                +terms_accepted);
     }
 
     // https://www.tutorialspoint.com/android/android_php_mysql.htm
     // https://androidjson.com/android-php-send-data-mysql-database/
 
-    public void postToDb(){
+    public void registerUserToDb(){
 
-        class sendPostReqAsyncTask extends AsyncTask<Void, Void, Boolean> {
+        class AsyncRegisterTask extends AsyncTask<Void, Void, Boolean> {
             @Override
             protected Boolean doInBackground(Void... voids) {
                 Log.i(LOG_TAG, "called doInBackground()");
@@ -106,8 +177,11 @@ public class RegisterUserActivity extends AppCompatActivity {
 
                 params.put("name", str_name);
                 params.put("email", str_email);
-                params.put("webpage", str_webpage);
-                params.put("comment", str_comment);
+                params.put("phone", str_phone);
+                params.put("psw1", str_password);
+                params.put("psw2", str_password_confirm);
+                params.put("personal_number", str_personal_number);
+                params.put("conditions", "accept");
 
                 StringBuilder sbParams = new StringBuilder();
                 int i = 0;
@@ -129,7 +203,7 @@ public class RegisterUserActivity extends AppCompatActivity {
                 HttpURLConnection conn;
                 String res = "";
                 try {
-                    URL url = new URL("https://people.dsv.su.se/~joeh1022/databaskoppling/databaskoppling_insert.php");
+                    URL url = new URL("https://people.dsv.su.se/~joeh1022/scripts/register_user.php");
                     conn = (HttpURLConnection) url.openConnection();
                     conn.setDoOutput(true);
                     conn.setRequestMethod("POST");
@@ -167,6 +241,8 @@ public class RegisterUserActivity extends AppCompatActivity {
                     Log.d(LOG_TAG, "Post success: " + res.contains("success") + "\nResult from server: \n" + res);
                 }
 
+                //Toast.makeText(getApplicationContext(), res, Toast.LENGTH_LONG).show(); // Shows confirmation/error msg from server
+                // TODO: Feedback for user?
                 return res.contains("success"); // If success is included in php output, SQL insert worked!
             }
 
@@ -175,20 +251,20 @@ public class RegisterUserActivity extends AppCompatActivity {
                 super.onPostExecute(res);
                 String msg;
                 if (res){
-                    msg = "httpPost COMPLETE";
+                    msg = "Registration COMPLETE";
+                    // TODO: Send user to login page?
                 }
                 else {
-                    msg = "httpPost FAILED";
-                    Toast.makeText(getApplicationContext(), "ERROR: Database insertion failed.", Toast.LENGTH_SHORT).show();
+                    msg = "Registration FAILED";
                 }
                 Log.i(LOG_TAG, msg);
             }
         }
+
+
         Log.i(LOG_TAG, "Called postToDb()");
-        gatherContent();
-        sendPostReqAsyncTask sendPostReqAsyncTask = new sendPostReqAsyncTask();
-        sendPostReqAsyncTask.execute();
+        AsyncRegisterTask registerTask = new AsyncRegisterTask();
+        registerTask.execute();
         Log.i(LOG_TAG, "Exit postToDb()");
     }
 }
-*/

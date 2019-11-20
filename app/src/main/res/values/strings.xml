@@ -10,4 +10,15 @@
     <string name="invalid_username">Not a 10 digit personal number!</string>
     <string name="invalid_password">Password must be 8+ characters!</string>
     <string name="login_failed">Login failure</string>
+    <string name="title_activity_maps">Map</string>
+
+    <!-- Strings related to register -->
+    <string name="full_name">Full name</string>
+    <string name="email">Email</string>
+    <string name="mobile">+467xxxxxxxx</string>
+    <string name="personal_number">YYYYMMDDNNNN</string>
+    <string name="password">Password</string>
+    <string name="password_confirm">Confirm password</string>
+    <string name="accept_terms">I have read and accept the Terms &amp; Conditions and Privacy Policy.</string>
+    <string name="continue_button">Continue</string>
 </resources>

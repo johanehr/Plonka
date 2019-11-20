@@ -5,6 +5,7 @@ import android.app.Activity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
@@ -23,7 +24,9 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.plonka.MapsActivity;
 import com.example.plonka.R;
+import com.example.plonka.RegisterUserActivity;
 import com.example.plonka.ui.login.LoginViewModel;
 import com.example.plonka.ui.login.LoginViewModelFactory;
 
@@ -69,7 +72,10 @@ public class LoginActivity extends AppCompatActivity {
                 }
                 if (loginResult.getSuccess() != null) {
                     updateUiWithUser(loginResult.getSuccess());
-                    // TODO : initiate successful logged in experience, move to map activity. Save log in status somewhere? Destroy current activity?
+                    // Initiate logged in experience, i.e. move to map activity. TODO: Save log in status somewhere, test by showing user name?
+                    Intent mapIntent = new Intent(getApplicationContext(), MapsActivity.class);
+                    startActivity(mapIntent);
+                    finish();
                 }
                 if (loginResult.getError() != null) {
                     showLoginFailed(loginResult.getError());
@@ -125,8 +131,10 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "registerButton clicked!");
-                Toast.makeText(getApplicationContext(), "Registration not yet implemented!", Toast.LENGTH_SHORT).show();
-                // TODO: Move user to register activity when registerButton is clicked (use existing sign-up PHP script?)
+                // Move user to register activity when registerButton is clicked
+                Intent registerIntent = new Intent(getApplicationContext(), RegisterUserActivity.class);
+                startActivity(registerIntent);
+                // do NOT finish this activity, keep in background in case user misclicked
             }
         });
 
@@ -134,7 +142,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void updateUiWithUser(LoggedInUserView model) {
-        Log.d(LOG_TAG, "updateUiWithUser()");
+        Log.d(LOG_TAG, "updateUiWithUser() called");
         String welcome = getString(R.string.welcome) + model.getDisplayName();
         // Overlay a Toast to welcome user
         Toast.makeText(getApplicationContext(), welcome, Toast.LENGTH_LONG).show();
@@ -142,7 +150,7 @@ public class LoginActivity extends AppCompatActivity {
 
     // Show a Toast with login failure message
     private void showLoginFailed(String errorString) {
-        Log.d(LOG_TAG, "showLoginFailed()");
+        Log.d(LOG_TAG, "showLoginFailed() called");
         Toast.makeText(getApplicationContext(), errorString, Toast.LENGTH_SHORT).show();
     }
 }
