@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
+import com.example.plonka.ui.login.LoginActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -64,7 +65,7 @@ public class RegisterUserActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register_user);
 
-        personal_number = findViewById(R.id.editTextPersonalNumber); // EXTENSION: Use personal number to automatically fetch name, mobile, etc
+        personal_number = findViewById(R.id.editTextPersonalNumber); // EXTENSION: Use personal number to automatically fetch name, mobile, etc using some kind of look-up API
         name = findViewById(R.id.editTextName);
         email = findViewById(R.id.editTextEmail);
         phone = findViewById(R.id.editTextMobile);
@@ -168,9 +169,9 @@ public class RegisterUserActivity extends AppCompatActivity {
 
     public void registerUserToDb(){
 
-        class AsyncRegisterTask extends AsyncTask<Void, Void, Boolean> {
+        class AsyncRegisterTask extends AsyncTask<Void, Void, String> {
             @Override
-            protected Boolean doInBackground(Void... voids) {
+            protected String doInBackground(Void... voids) {
                 Log.i(LOG_TAG, "called doInBackground()");
 
                 HashMap<String, String> params = new HashMap<>();;
@@ -219,7 +220,7 @@ public class RegisterUserActivity extends AppCompatActivity {
 
                 } catch (IOException e) {
                     e.printStackTrace();
-                    return false;
+                    return e.toString();
                 }
                 try {
                     InputStream in = new BufferedInputStream(conn.getInputStream());
@@ -237,34 +238,45 @@ public class RegisterUserActivity extends AppCompatActivity {
                     if (conn != null) {
                         conn.disconnect();
                     }
-
                     Log.d(LOG_TAG, "Post success: " + res.contains("success") + "\nResult from server: \n" + res);
                 }
-
-                //Toast.makeText(getApplicationContext(), res, Toast.LENGTH_LONG).show(); // Shows confirmation/error msg from server
-                // TODO: Feedback for user?
-                return res.contains("success"); // If success is included in php output, SQL insert worked!
+                return res; // If success is included in php output, SQL insert worked!
             }
 
             @Override
-            protected void onPostExecute(Boolean res){
+            protected void onPostExecute(String res){
                 super.onPostExecute(res);
                 String msg;
-                if (res){
-                    msg = "Registration COMPLETE";
-                    // TODO: Send user to login page?
+                if (res.contains("success")){
+                    msg = "Registration COMPLETED SUCCESSFULLY";
                 }
                 else {
                     msg = "Registration FAILED";
                 }
-                Log.i(LOG_TAG, msg);
+                Log.d(LOG_TAG, msg);
             }
         }
 
 
         Log.i(LOG_TAG, "Called postToDb()");
         AsyncRegisterTask registerTask = new AsyncRegisterTask();
-        registerTask.execute();
+        String registerOutput = "registerTask failed"; // Changed if successful
+        try{
+            registerOutput = registerTask.execute().get();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "registerTask.execute() failed: "+e.toString());
+        }
+
+        Log.i(LOG_TAG, "Register output: "+registerOutput);
+
+        Toast.makeText(getApplicationContext(), registerOutput, Toast.LENGTH_LONG).show(); // Shows confirmation/error msg from server
+        if (registerOutput.contains("success")) {
+            // Send user to login page if successfully registered
+            Intent loginIntent = new Intent(getApplicationContext(), LoginActivity.class);
+            startActivity(loginIntent);
+            finish();
+        }
+
         Log.i(LOG_TAG, "Exit postToDb()");
     }
 }

@@ -5,21 +5,19 @@ package com.example.plonka.data.model;
  */
 public class LoggedInUser {
 
-    //private long personalNumber;
+    private String password; // Keep copy of provided password for additional security when requesting changes to DB
     private Integer accountId;
     private String displayName;
 
-    public LoggedInUser(/*long user, */Integer account, String name) {
-        //this.personalNumber = user;
+    public LoggedInUser(Integer account, String password, String name) {
         this.accountId = account;
+        this.password = password;
         this.displayName = name;
     }
 
-    /*
-    public long getPersonalNumber() {
-        return personalNumber;
+    public String getPassword() {
+        return password;
     }
-    */
 
     public Integer getAccountId() {
         return accountId;

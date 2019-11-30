@@ -17,6 +17,7 @@ public class LoginViewModel extends ViewModel {
     private MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
     private MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
     private LoginRepository loginRepository;
+    private LoggedInUser currentUser;
     private String LOG_TAG = "PLONKA_LOGINVIEWMODEL";
 
     LoginViewModel(LoginRepository loginRepository) {
@@ -30,13 +31,13 @@ public class LoginViewModel extends ViewModel {
     LiveData<LoginResult> getLoginResult() { return loginResult; }
 
     // Attempt to log in the user with specified personal number and password
-    public void login(long user, String password) {
+    public void login(Long user, String password) {
         Log.d(LOG_TAG, "login() called");
         Result<LoggedInUser> result = loginRepository.login(user, password);
         if (result instanceof Result.Success) {
             Log.d(LOG_TAG, "login() result is success");
-            LoggedInUser data = ((Result.Success<LoggedInUser>) result).getData();
-            loginResult.setValue(new LoginResult(new LoggedInUserView(data.getDisplayName()))); // Only need display name for UI purposes, id is hidden from user
+            currentUser = ((Result.Success<LoggedInUser>) result).getData(); // Set currentUser member variable
+            loginResult.setValue(new LoginResult(new LoggedInUserView(currentUser.getDisplayName()))); // Only need display name for UI purposes, rest is hidden from user
         }
         else if (result instanceof Result.Error) {
             Log.d(LOG_TAG, "login() result is failure");
@@ -45,7 +46,11 @@ public class LoginViewModel extends ViewModel {
         }
     }
 
-    public void loginDataChanged(long username, String password) {
+    public LoggedInUser getCurrentUser(){
+        return currentUser;
+    }
+
+    public void loginDataChanged(String username, String password) {
         if (!isUserNameValid(username)) {
             loginFormState.setValue(new LoginFormState(R.string.invalid_username, null));
         } else if (!isPasswordValid(password)) {
@@ -56,13 +61,21 @@ public class LoginViewModel extends ViewModel {
     }
 
     // A simple username validation check
-    private boolean isUserNameValid(long username) {
-        // OK if username is 10 digits (personal number), EXTENSION: Use control numbers to check if valid
-        if (username > 190000000000L) {
-            Log.d(LOG_TAG, "isUserNameValid("+Long.toString(username)+")=true");
-            return true;
-        } else {
-            Log.d(LOG_TAG, "isUserNameValid("+Long.toString(username)+")=false");
+    private boolean isUserNameValid(String username_str) {
+
+        try{
+            Long username = Long.parseLong(username_str);
+            // OK if username is a reasonable value containing 10 digits (personal number), EXTENSION: Use control numbers to check if valid
+            if (username > 190000000000L) {
+                Log.d(LOG_TAG, "isUserNameValid("+Long.toString(username)+")=true");
+                return true;
+            } else {
+                Log.d(LOG_TAG, "isUserNameValid("+Long.toString(username)+")=false");
+                return false;
+            }
+        }
+        catch(NumberFormatException e){
+            Log.d(LOG_TAG, "User entered non-numerical username");
             return false;
         }
     }

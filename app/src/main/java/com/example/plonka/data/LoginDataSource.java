@@ -18,13 +18,13 @@ public class LoginDataSource {
     private String[] userDetails = {"Not logged in"};
     private String LOG_TAG = "PLONKA_LOGINDATASOURCE";
 
-    public Result<LoggedInUser> login(long provided_user, String provided_password) {
+    public Result<LoggedInUser> login(Long provided_user, String provided_password) {
         try {
             // Handle loggedInUser authentication with MySQL database
             loginTask = new AsyncLoginTask(new AsyncLoginTask.AsyncResponse(){
                 @Override
                 public void processFinish(String[] output){
-                    Log.d(LOG_TAG, "processFinish() called");
+                Log.d(LOG_TAG, "processFinish() called");
                 }
             });
 
@@ -38,7 +38,7 @@ public class LoginDataSource {
                 Integer accountId = Integer.valueOf(userDetails[0]);
                 String userName = userDetails[1];
                 Log.v(LOG_TAG, "Log in successful [account: "+userDetails[0]+", name: "+userName+"]");
-                LoggedInUser currentUser = new LoggedInUser(accountId, userName);
+                LoggedInUser currentUser = new LoggedInUser(accountId, provided_password ,userName);
                 return new Result.Success<>(currentUser);
             }
             else {

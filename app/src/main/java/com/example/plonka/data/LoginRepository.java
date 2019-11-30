@@ -44,7 +44,7 @@ public class LoginRepository {
     }
 
     // Actually try to log in user with email and pw
-    public Result<LoggedInUser> login(long user, String password) {
+    public Result<LoggedInUser> login(Long user, String password) {
         // handle login
         Result<LoggedInUser> result = dataSource.login(user, password);
         if (result instanceof Result.Success) {
