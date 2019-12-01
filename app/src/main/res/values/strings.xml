@@ -21,4 +21,8 @@
     <string name="password_confirm">Confirm password</string>
     <string name="accept_terms">I have read and accept the Terms &amp; Conditions and Privacy Policy.</string>
     <string name="continue_button">Continue</string>
+
+    <!-- String related to map activity -->
+    <string name="require_location_permissions">To use Plonka, you need to allow location tracking. Closing app.</string>
+    <string name="button_start_working">Start working</string>
 </resources>
