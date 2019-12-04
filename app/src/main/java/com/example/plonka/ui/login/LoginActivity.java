@@ -25,6 +25,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.plonka.HubActivity;
 import com.example.plonka.MapsActivity;
 import com.example.plonka.R;
 import com.example.plonka.RegisterUserActivity;
@@ -77,7 +78,7 @@ public class LoginActivity extends AppCompatActivity {
                     updateUiWithUser(loginResult.getSuccess());
 
                     // Log in details passed on to new activity. TECHNICAL DEBT: use parcelable instead of multiple putExtra fields
-                    Intent mapIntent = new Intent(getApplicationContext(), MapsActivity.class);
+                    Intent mapIntent = new Intent(getApplicationContext(), HubActivity.class);
                     LoggedInUser user = loginViewModel.getCurrentUser();
                     mapIntent.putExtra("userPw", user.getPassword());
                     mapIntent.putExtra("userId",user.getAccountId());
