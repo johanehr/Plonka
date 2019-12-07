@@ -1,7 +1,5 @@
 package com.example.plonka.ui.login;
 
-import android.app.Activity;
-
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
@@ -10,7 +8,6 @@ import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.text.Editable;
@@ -21,17 +18,13 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.plonka.HubActivity;
-import com.example.plonka.MapsActivity;
 import com.example.plonka.R;
 import com.example.plonka.RegisterUserActivity;
 import com.example.plonka.data.model.LoggedInUser;
-import com.example.plonka.ui.login.LoginViewModel;
-import com.example.plonka.ui.login.LoginViewModelFactory;
 
 public class LoginActivity extends AppCompatActivity {
 
