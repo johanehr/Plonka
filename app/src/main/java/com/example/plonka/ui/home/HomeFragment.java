@@ -65,8 +65,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback{
         root = inflater.inflate(R.layout.fragment_map, container, false);
 
         // Check that user has agreed to location permissions - if not, activity is finished
-
-
         if (!checkPermissions(permissions)){
             Log.d(LOG_TAG, " > Requesting permissions");
             ActivityCompat.requestPermissions(getActivity(), permissions, REQUEST_LOCATION_PERMISSIONS);
@@ -75,9 +73,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback{
             Log.d(LOG_TAG, " > Permissions already granted.");
             initializeComponents();
         }
-
-
-
         return root;
     }
 
