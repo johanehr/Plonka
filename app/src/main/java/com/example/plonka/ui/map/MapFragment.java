@@ -1,4 +1,4 @@
-package com.example.plonka.ui.home;
+package com.example.plonka.ui.map;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -17,6 +17,8 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Polygon;
+import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -39,7 +41,7 @@ import com.example.plonka.R;
 
 import java.util.ArrayList;
 
-public class HomeFragment extends Fragment implements OnMapReadyCallback{
+public class MapFragment extends Fragment implements OnMapReadyCallback{
 
     private GoogleMap mMap;
     private UiSettings mUiSettings;
@@ -102,6 +104,11 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback{
                 Log.d(LOG_TAG, "onLocationResult() called: " + gpsData);
 
                 userLocation = new LatLng(latitude, longitude);
+
+                // TODO: Check if within a zone. If yes, activate button and set text. If not, disable w/ other text.
+                startWorkingButton.setClickable(true);
+                startWorkingButton.setEnabled(true);
+                startWorkingButton.setVisibility(View.VISIBLE); // View.INVISIBLE
             }
         };
         Log.d(LOG_TAG, " > setup fusedLocationClient");
@@ -219,6 +226,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback{
                 }
             }
         });
+
+        requestZonesFromDb();
     }
 
     // Inspired by: https://developer.android.com/training/location/receive-location-updates
@@ -269,5 +278,26 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback{
         } else{
             initializeComponents();
         }
+    }
+
+    // TODO: Get from DB instead
+    private void requestZonesFromDb(){
+        LatLng[] testPolyCoords = new LatLng[7]; // Use known number of pts from DB entry
+        testPolyCoords[0] = new LatLng(59.381353, 18.022645);
+        testPolyCoords[1] = new LatLng(59.382020, 18.020344);
+        testPolyCoords[2] = new LatLng(59.382473, 18.019558);
+        testPolyCoords[3] = new LatLng(59.383670, 18.020963);
+        testPolyCoords[4] = new LatLng(59.383670, 18.020963);
+        testPolyCoords[5] = new LatLng(59.3851152, 18.0199302);
+        testPolyCoords[6] = new LatLng(59.383692, 18.024336);
+
+        PolygonOptions polyOpts = new PolygonOptions().clickable(true).add(testPolyCoords);
+
+        Polygon polygon1 = mMap.addPolygon(polyOpts);
+        // Store a data object with the polygon, used here to indicate an arbitrary type.
+        polygon1.setTag("A");
+        polygon1.setStrokeWidth(6); // px width of stroke
+        polygon1.setStrokeColor(0xffff8800); // Opaque orange
+        polygon1.setFillColor(0x66ff8800); // Transparent orange defined as ARGB
     }
 }
