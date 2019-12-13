@@ -25,6 +25,7 @@
     <!-- String related to map hub activity -->
     <string name="require_location_permissions">To use Plonka, you need to allow location tracking. Closing app.</string>
     <string name="button_start_working">Start working</string>
+    <string name="button_start_working_inactive">Enter a zone</string>
     <string name="title_activity_hub">Hub</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>

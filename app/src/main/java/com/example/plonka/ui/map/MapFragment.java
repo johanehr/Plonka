@@ -2,9 +2,13 @@ package com.example.plonka.ui.map;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 
+import com.example.plonka.AsyncGetZonesTask;
+import com.example.plonka.Zone;
+import com.example.plonka.PolyUtil;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -40,6 +44,7 @@ import androidx.fragment.app.Fragment;
 import com.example.plonka.R;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback{
 
@@ -49,7 +54,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
     private LatLng userLocation;
-    private ArrayList<ArrayList<LatLng>> zoneLocations; // TODO: Fill from DB
+    private ArrayList<Zone> zones;
 
     private View root;
     private FloatingActionButton fabButton;
@@ -105,10 +110,25 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
 
                 userLocation = new LatLng(latitude, longitude);
 
-                // TODO: Check if within a zone. If yes, activate button and set text. If not, disable w/ other text.
-                startWorkingButton.setClickable(true);
-                startWorkingButton.setEnabled(true);
-                startWorkingButton.setVisibility(View.VISIBLE); // View.INVISIBLE
+                // Check if within any zone. If yes, activate button and set text. If not, disable w/ other text.
+                boolean insideZone = false;
+                for (Zone z : zones) {
+                    if (PolyUtil.containsLocation(userLocation, Arrays.asList(z.getCoords()), true)){ // https://googlemaps.github.io/android-maps-utils/javadoc/com/google/maps/android/PolyUtil.html
+                        insideZone = true;
+                        // TODO: Add logic to select WHICH zone(s) have been entered
+                        Log.i(LOG_TAG, "User has entered zone: "+z.getDescription());
+                    }
+                    else {
+                        Log.i(LOG_TAG, "User is not in zone: "+z.getDescription());
+                    }
+                }
+
+                startWorkingButton.setClickable(insideZone);
+                startWorkingButton.setEnabled(insideZone);
+                startWorkingButton.setBackground(ContextCompat.getDrawable(getContext(), insideZone? R.drawable.rounded_button : R.drawable.rounded_button_inactive));
+                //startWorkingButton.setText(insideZone? "Start working" : "Enter a zone");
+                startWorkingButton.setText(getString( insideZone? R.string.button_start_working  : R.string.button_start_working_inactive));
+
             }
         };
         Log.d(LOG_TAG, " > setup fusedLocationClient");
@@ -280,19 +300,25 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         }
     }
 
-    // TODO: Get from DB instead
     private void requestZonesFromDb(){
-        LatLng[] testPolyCoords = new LatLng[7]; // Use known number of pts from DB entry
-        testPolyCoords[0] = new LatLng(59.381353, 18.022645);
-        testPolyCoords[1] = new LatLng(59.382020, 18.020344);
-        testPolyCoords[2] = new LatLng(59.382473, 18.019558);
-        testPolyCoords[3] = new LatLng(59.383670, 18.020963);
-        testPolyCoords[4] = new LatLng(59.383670, 18.020963);
-        testPolyCoords[5] = new LatLng(59.3851152, 18.0199302);
-        testPolyCoords[6] = new LatLng(59.383692, 18.024336);
+        AsyncGetZonesTask zoneTask = new AsyncGetZonesTask(new AsyncGetZonesTask.AsyncResponse(){
+            @Override
+            public void processFinish(ArrayList<Zone> output){
+                Log.d(LOG_TAG, "processFinish() called");
+            }
+        });
+        try{
+            zones = zoneTask.execute().get();
+            for (Zone z : zones){
+                addZoneToMap(z.getCoords());
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "registerTask.execute() failed: "+e.toString());
+        }
+    }
 
-        PolygonOptions polyOpts = new PolygonOptions().clickable(true).add(testPolyCoords);
-
+    private void addZoneToMap(LatLng[] coords){
+        PolygonOptions polyOpts = new PolygonOptions().clickable(true).add(coords);
         Polygon polygon1 = mMap.addPolygon(polyOpts);
         // Store a data object with the polygon, used here to indicate an arbitrary type.
         polygon1.setTag("A");
