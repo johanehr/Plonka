@@ -34,8 +34,10 @@
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
-    <string name="menu_home">Map</string>
+    <string name="menu_home">Zone map</string>
     <string name="menu_history">Previous sessions</string>
     <string name="menu_faq">FAQ</string>
+    <string name="menu_support_email">Email</string>
+    <string name="menu_support_phone">Phone</string>
 
 </resources>
