@@ -1,60 +1,29 @@
 package com.example.plonka;
 
-import android.Manifest;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.net.Uri;
-import android.os.Bundle;
-
 import com.example.plonka.data.model.LoggedInUser;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.UiSettings;
-import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 
-import android.os.Looper;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
 
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
 import androidx.core.view.GravityCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-
-import com.google.android.material.navigation.NavigationView;
-
 import androidx.drawerlayout.widget.DrawerLayout;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.view.Menu;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import java.util.ArrayList;
+import com.google.android.material.navigation.NavigationView;
 
 public class HubActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
 
     private AppBarConfiguration mAppBarConfiguration;
-
     private LoggedInUser currentUser; // Contains necessary data for requesting data from DB
     private String LOG_TAG = "PLONKA_HUB_ACTIVITY";
 
@@ -78,7 +47,7 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
         NavigationView navigationView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_map, R.id.nav_gallery, R.id.nav_faq)
+                R.id.nav_map, R.id.nav_history, R.id.nav_faq)
                 .setDrawerLayout(drawer)
                 .build();
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
@@ -89,7 +58,7 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
         navigationView.setNavigationItemSelectedListener(this);
 
         // Set up user profile at top
-        View headerView = navigationView.getHeaderView(0);
+        View headerView = navigationView.getHeaderView(0); // This requires a certain order in xml file
         TextView textUserName = (TextView) headerView.findViewById(R.id.textViewUserName);
         textUserName.setText(userName);
         TextView textUserId = (TextView) headerView.findViewById(R.id.textViewUserId);
@@ -109,39 +78,51 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
     // From: https://stackoverflow.com/questions/42297381/onclick-event-in-navigation-drawer
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // TODO: Fix so that all clicks work, broke legacy. Use onClick() for menu item instead? https://developer.android.com/guide/topics/ui/menus.html#java 
+
         // Handle navigation view item clicks here.
         switch (item.getItemId()) {
 
-            case R.id.nav_support_email: {
-                Log.d(LOG_TAG, "Pressed nav_support_email");
-                Intent email = new Intent(Intent.ACTION_SEND);
-                email.setType("text/plain");
-                email.putExtra(Intent.EXTRA_EMAIL, new String[] {"support@plonka.se"});
-                email.putExtra(Intent.EXTRA_SUBJECT, "Plonka support: <ENTER TITLE>");
-                email.putExtra(Intent.EXTRA_TEXT, "User ID: "+currentUser.getAccountId()+"\n\n<ENTER YOUR SUPPORT ISSUE HERE>");
-
-                if (email.resolveActivity(getPackageManager()) != null) {
-                    startActivity(Intent.createChooser(email, "Choose your e-mail client:"));
-                }
+            case R.id.nav_support_email:
+            {
+                mailCallback();
                 break;
             }
-            case R.id.nav_support_phone: {
-                Log.d(LOG_TAG, "Pressed nav_support_phone");
-                Intent call = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:+46701234567"));
-                if (call.resolveActivity(getPackageManager()) != null) {
-                    startActivity(call);
-                }
+            case R.id.nav_support_phone:
+            {
+                phoneCallback();
                 break;
             }
-            default: {
-                return super.onOptionsItemSelected(item);
+            default:
+            {
+                Log.d(LOG_TAG, "Entered default case in onNavigationItemSelected()");
+                Navigation.findNavController(this, R.id.nav_host_fragment).navigate(item.getItemId());
             }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
+
         return true;
     }
 
+    private void phoneCallback(){
+        Log.d(LOG_TAG, "Pressed nav_support_phone");
+        Intent call = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:+46701234567"));
+        if (call.resolveActivity(getPackageManager()) != null) {
+            startActivity(call);
+        }
+    }
+
+    private void mailCallback(){
+        Log.d(LOG_TAG, "Pressed nav_support_email");
+        Intent email = new Intent(Intent.ACTION_SEND);
+        email.setType("text/plain");
+        email.putExtra(Intent.EXTRA_EMAIL, new String[] {"support@plonka.se"});
+        email.putExtra(Intent.EXTRA_SUBJECT, "Plonka support: <ENTER TITLE>");
+        email.putExtra(Intent.EXTRA_TEXT, "User ID: "+currentUser.getAccountId()+"\n\n<ENTER YOUR SUPPORT ISSUE HERE>");
+
+        if (email.resolveActivity(getPackageManager()) != null) {
+            startActivity(Intent.createChooser(email, "Choose your e-mail client:"));
+        }
+    }
 }

@@ -3,31 +3,23 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
 
-    <group android:checkableBehavior="single">
-        <item
-            android:id="@+id/nav_map"
-            android:icon="@android:drawable/ic_dialog_map"
-            android:title="@string/menu_home" />
+    <item
+        android:id="@+id/nav_map"
+        android:icon="@android:drawable/ic_dialog_map"
+        android:title="@string/menu_home" />
 
-    </group>
+    <item
+        android:id="@+id/nav_history"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="@string/menu_history" />
 
-    <item android:title="Other">
-        <menu>
-            <item
-                android:id="@+id/nav_gallery"
-                android:icon="@android:drawable/ic_menu_recent_history"
-                android:title="@string/menu_history" />
-
-            <item
-                android:id="@+id/nav_faq"
-                android:icon="@android:drawable/ic_menu_help"
-                android:title="@string/menu_faq" />
-        </menu>
-    </item>
+    <item
+        android:id="@+id/nav_faq"
+        android:icon="@android:drawable/ic_menu_help"
+        android:title="@string/menu_faq" />
 
     <item android:title="Contact us">
         <menu>
-
             <item
                 android:id="@+id/nav_support_email"
                 android:icon="@android:drawable/sym_action_email"
@@ -35,7 +27,7 @@
 
             <item
                 android:id="@+id/nav_support_phone"
-                android:icon="@android:drawable/stat_sys_speakerphone"
+                android:icon="@android:drawable/stat_sys_phone_call"
                 android:title="@string/menu_support_phone" />
         </menu>
     </item>

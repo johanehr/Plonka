@@ -16,10 +16,12 @@
       echo 'NUM_ZONES:'.$num_zones.PHP_EOL; // Used to naively read the correct number of lines, num_zones * 4 lines
 
       while( $row = $result->fetch_assoc() ) { // Use database column name as key
+        $zone_identifier = $row['id'];
         $zone_description = $row['description'];
         $zone_position = $row['position'];
         $zone_balance = $row['balance'];
         echo "---".PHP_EOL; // Human readable separator
+        echo $zone_identifier.PHP_EOL;
         echo $zone_description.PHP_EOL;
         echo $zone_position.PHP_EOL;
         echo $zone_balance.PHP_EOL;

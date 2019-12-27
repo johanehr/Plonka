@@ -55,6 +55,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     private LocationCallback locationCallback;
     private LatLng userLocation;
     private ArrayList<Zone> zones;
+    private boolean insideZone = false;
 
     private View root;
     private FloatingActionButton fabButton;
@@ -86,7 +87,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     public void initializeComponents(){
 
         // Set up periodic GPS-location request
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity()); // Tried: x getActivity(), x getContext()? x getActivity().getApplicationContext()
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(2000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
@@ -111,22 +112,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
                 userLocation = new LatLng(latitude, longitude);
 
                 // Check if within any zone. If yes, activate button and set text. If not, disable w/ other text.
-                boolean insideZone = false;
+                insideZone = false;
                 for (Zone z : zones) {
                     if (PolyUtil.containsLocation(userLocation, Arrays.asList(z.getCoords()), true)){ // https://googlemaps.github.io/android-maps-utils/javadoc/com/google/maps/android/PolyUtil.html
                         insideZone = true;
                         // TODO: Add logic to select WHICH zone(s) have been entered
-                        Log.i(LOG_TAG, "User has entered zone: "+z.getDescription());
+                        Log.i(LOG_TAG, "User has entered zone: "+z.getDescription() + " which has ID:"+z.getIdentifier());
                     }
                     else {
-                        Log.i(LOG_TAG, "User is not in zone: "+z.getDescription());
+                        Log.i(LOG_TAG, "User is NOT in zone: "+z.getDescription() + " which has ID:"+z.getIdentifier());
                     }
                 }
 
                 startWorkingButton.setClickable(insideZone);
                 startWorkingButton.setEnabled(insideZone);
                 startWorkingButton.setBackground(ContextCompat.getDrawable(getContext(), insideZone? R.drawable.rounded_button : R.drawable.rounded_button_inactive));
-                //startWorkingButton.setText(insideZone? "Start working" : "Enter a zone");
                 startWorkingButton.setText(getString( insideZone? R.string.button_start_working  : R.string.button_start_working_inactive));
 
             }
@@ -172,8 +172,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         startWorkingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d(LOG_TAG, "Pressed work button!");
-                // TODO: Move to new activity
+                if (insideZone){ // Additional check
+                    Log.d(LOG_TAG, "Pressed work button while inside zone!");
+                    // TODO: Move to new activity
+                }
             }
         });
         Log.d(LOG_TAG, " > setup startWorkingButton");

@@ -78,11 +78,12 @@ public class AsyncGetZonesTask extends AsyncTask<Void, Void, ArrayList<Zone>> {
                 // Naively assume known number of lines to read, all expected info returned
                 for (int zone = 0; zone < numZones; zone++) {
                     String separator = reader.readLine();    // ---
+                    String identifier = reader.readLine();   // Id field from DB
                     String description = reader.readLine();  // Description field from DB
                     String coordinates = reader.readLine();  // Position field from DB
                     String balance = reader.readLine();      // Balance field from DB
 
-                    zones.add(new Zone(description, coordinates, balance));
+                    zones.add(new Zone(identifier, description, coordinates, balance));
                 }
             } else {
                 // Not connected, log error message

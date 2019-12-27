@@ -3,11 +3,13 @@ package com.example.plonka;
 import com.google.android.gms.maps.model.LatLng;
 
 public class Zone {
+    private int identifier;
     private String description;
     private LatLng[] coordinates;
     private float balance;
 
-    public Zone(String zone_name, String coordinateString, String balanceString){
+    public Zone(String zone_id, String zone_name, String coordinateString, String balanceString){
+        identifier = genIdentifier(zone_id);
         description = zone_name;
         coordinates = genCoordinates(coordinateString);
         balance = genBalance(balanceString);
@@ -35,6 +37,10 @@ public class Zone {
         return Float.parseFloat(balanceStr);
     }
 
+    private int genIdentifier(String identifierStr){
+        return Integer.parseInt(identifierStr);
+    }
+
     public LatLng[] getCoords(){
         return coordinates;
     }
@@ -42,4 +48,6 @@ public class Zone {
     public String getDescription(){
         return description;
     }
+
+    public int getIdentifier() {return identifier;}
 }
