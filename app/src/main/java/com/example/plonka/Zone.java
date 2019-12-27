@@ -50,4 +50,6 @@ public class Zone {
     }
 
     public int getIdentifier() {return identifier;}
+
+    public float getBalance() {return balance;}
 }

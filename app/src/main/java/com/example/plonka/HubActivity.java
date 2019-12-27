@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.core.view.GravityCompat;
+import androidx.fragment.app.DialogFragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -19,6 +20,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.example.plonka.ui.map.MapFragment;
+import com.example.plonka.ui.map.StartShiftDialogFragment;
 import com.google.android.material.navigation.NavigationView;
 
 public class HubActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{

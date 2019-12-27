@@ -1,6 +1,8 @@
 package com.example.plonka.ui.map;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -40,6 +42,7 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import com.example.plonka.R;
 
@@ -54,7 +57,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
     private LatLng userLocation;
-    private ArrayList<Zone> zones;
+    private ArrayList<Zone> zones = new ArrayList<Zone>();; // All available zones, read from DB
+    private ArrayList<Zone> currentZones = new ArrayList<Zone>(); // Zones which user is currently inside
     private boolean insideZone = false;
 
     private View root;
@@ -111,16 +115,17 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
 
                 userLocation = new LatLng(latitude, longitude);
 
-                // Check if within any zone. If yes, activate button and set text. If not, disable w/ other text.
+                // Check if within any zone(s). If yes, activate button and set text. If not, disable w/ other text.
+                currentZones.clear();
                 insideZone = false;
                 for (Zone z : zones) {
                     if (PolyUtil.containsLocation(userLocation, Arrays.asList(z.getCoords()), true)){ // https://googlemaps.github.io/android-maps-utils/javadoc/com/google/maps/android/PolyUtil.html
                         insideZone = true;
-                        // TODO: Add logic to select WHICH zone(s) have been entered
-                        Log.i(LOG_TAG, "User has entered zone: "+z.getDescription() + " which has ID:"+z.getIdentifier());
+                        currentZones.add(z);
+                        Log.i(LOG_TAG, "User is currently inside zone: "+z.getDescription() + " which has ID:"+z.getIdentifier());
                     }
                     else {
-                        Log.i(LOG_TAG, "User is NOT in zone: "+z.getDescription() + " which has ID:"+z.getIdentifier());
+                        Log.d(LOG_TAG, "User is NOT in zone: "+z.getDescription() + " which has ID:"+z.getIdentifier());
                     }
                 }
 
@@ -128,7 +133,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
                 startWorkingButton.setEnabled(insideZone);
                 startWorkingButton.setBackground(ContextCompat.getDrawable(getContext(), insideZone? R.drawable.rounded_button : R.drawable.rounded_button_inactive));
                 startWorkingButton.setText(getString( insideZone? R.string.button_start_working  : R.string.button_start_working_inactive));
-
             }
         };
         Log.d(LOG_TAG, " > setup fusedLocationClient");
@@ -173,8 +177,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
             @Override
             public void onClick(View v) {
                 if (insideZone){ // Additional check
-                    Log.d(LOG_TAG, "Pressed work button while inside zone!");
-                    // TODO: Move to new activity
+                    Log.d(LOG_TAG, "Pressed work button while inside a zone!");
+                    // Confirm move to new Activity using Dialog, https://developer.android.com/guide/topics/ui/dialogs
+                    showStartShiftDialog();
                 }
             }
         });
@@ -194,13 +199,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Log.i(LOG_TAG, "called onCreate()");
+        Log.d(LOG_TAG, "called onCreate()");
         super.onCreate(savedInstanceState);
     }
 
     @Override
     public void onStart() {
-        Log.i(LOG_TAG, "called onStart()");
+        Log.d(LOG_TAG, "called onStart()");
         super.onStart();
     }
 
@@ -215,7 +220,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Log.i(LOG_TAG, "called onMapReady()");
+        Log.d(LOG_TAG, "called onMapReady()");
         mMap = googleMap;
 
         // Set up UI for map
@@ -312,7 +317,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         try{
             zones = zoneTask.execute().get();
             for (Zone z : zones){
-                addZoneToMap(z.getCoords());
+                if (z.getBalance() >= 50.0){
+                    addZoneToMap(z.getCoords());
+                    Log.d(LOG_TAG, "Zone "+z.getDescription()+ "'s balance is sufficient at: "+z.getBalance()+ ". Showing on map.");
+                }
+                else{
+                    Log.d(LOG_TAG, "Zone "+z.getDescription()+ "'s balance is too low at: "+z.getBalance()+ ". Not showing on map.");
+                }
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "registerTask.execute() failed: "+e.toString());
@@ -327,5 +338,36 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         polygon1.setStrokeWidth(6); // px width of stroke
         polygon1.setStrokeColor(0xffff8800); // Opaque orange
         polygon1.setFillColor(0x66ff8800); // Transparent orange defined as ARGB
+    }
+
+    private void showStartShiftDialog(){
+        StartShiftDialogFragment newFragment = new StartShiftDialogFragment();
+        newFragment.setTargetFragment(this, StartShiftDialogFragment.CODE); // Sets request code to be used by onActivityResult()
+        newFragment.show(getFragmentManager(), "startShift");
+    }
+
+    // Use as callback for StartShiftDialogFragment choice
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch(requestCode) {
+            case StartShiftDialogFragment.CODE:
+                if (resultCode == Activity.RESULT_OK) {
+                    startShift();
+                } else if (resultCode == Activity.RESULT_CANCELED){
+                    Log.d(LOG_TAG, "User cancelled StartShiftDialogFragment by pressing cancel...");
+                }
+                break;
+        }
+    }
+
+    public void startShift(){
+        Log.i(LOG_TAG, "User wants to proceed by starting shift!");
+        String currentZonesList = "";
+        for (Zone cZ : currentZones){
+            currentZonesList += ("\n"+cZ.getDescription());
+        }
+        Log.i(LOG_TAG, "User is currently in these zones:"+currentZonesList);
+
+        // TODO: Start shift activity
     }
 }
