@@ -20,11 +20,15 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.example.plonka.ui.ShiftActivity;
 import com.example.plonka.ui.map.MapFragment;
 import com.example.plonka.ui.map.StartShiftDialogFragment;
 import com.google.android.material.navigation.NavigationView;
 
-public class HubActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
+import java.io.Serializable;
+import java.util.ArrayList;
+
+public class HubActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, MapFragment.startShiftListener {
 
     private AppBarConfiguration mAppBarConfiguration;
     private LoggedInUser currentUser; // Contains necessary data for requesting data from DB
@@ -127,5 +131,23 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
         if (email.resolveActivity(getPackageManager()) != null) {
             startActivity(Intent.createChooser(email, "Choose your e-mail client:"));
         }
+    }
+
+    @Override
+    public void startShiftInterface(ArrayList<Zone> zones){
+        // TODO: Pass active zones in a suitable manner
+        Log.i(LOG_TAG, "RECEIVED START_SHIFT_INTERFACE!");
+
+        // Log in details passed on to new activity. TECHNICAL DEBT: use parcelable instead of multiple putExtra fields
+        Intent shiftIntent = new Intent(getApplicationContext(), ShiftActivity.class);
+        shiftIntent.putExtra("userPw", currentUser.getPassword());
+        shiftIntent.putExtra("userId",currentUser.getAccountId());
+        shiftIntent.putExtra("userName", currentUser.getDisplayName());
+
+        Bundle zoneBundle = new Bundle();
+        zoneBundle.putSerializable("zones", (Serializable) zones);
+        shiftIntent.putExtra("zoneBundle", zoneBundle);
+
+        startActivity(shiftIntent);
     }
 }

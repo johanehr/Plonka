@@ -2,10 +2,15 @@ package com.example.plonka;
 
 import com.google.android.gms.maps.model.LatLng;
 
-public class Zone {
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
+public class Zone implements Serializable {
     private int identifier;
     private String description;
-    private LatLng[] coordinates;
+    private transient LatLng[] coordinates;
     private float balance;
 
     public Zone(String zone_id, String zone_name, String coordinateString, String balanceString){
@@ -52,4 +57,24 @@ public class Zone {
     public int getIdentifier() {return identifier;}
 
     public float getBalance() {return balance;}
+
+    // https://stackoverflow.com/questions/14220554/how-to-serialize-a-third-party-non-serializable-final-class-e-g-googles-latln
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        out.defaultWriteObject();
+        out.writeInt(coordinates.length);
+        for (int i = 0; i < coordinates.length; i++){
+            out.writeDouble(coordinates[i].latitude);
+            out.writeDouble(coordinates[i].longitude);
+        }
+    }
+
+    // https://stackoverflow.com/questions/14220554/how-to-serialize-a-third-party-non-serializable-final-class-e-g-googles-latln
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        int numLocations = in.readInt();
+        coordinates = new LatLng[numLocations];
+        for (int i = 0; i < numLocations; i++){
+            coordinates[i] = new LatLng(in.readDouble(), in.readDouble());
+        }
+    }
 }

@@ -2,6 +2,7 @@ package com.example.plonka.ui.map;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -11,6 +12,7 @@ import android.os.Bundle;
 import com.example.plonka.AsyncGetZonesTask;
 import com.example.plonka.Zone;
 import com.example.plonka.PolyUtil;
+import com.example.plonka.ui.ShiftActivity;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -57,7 +59,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
     private LatLng userLocation;
-    private ArrayList<Zone> zones = new ArrayList<Zone>();; // All available zones, read from DB
+    private ArrayList<Zone> zones = new ArrayList<Zone>(); // All available zones, read from DB
     private ArrayList<Zone> currentZones = new ArrayList<Zone>(); // Zones which user is currently inside
     private boolean insideZone = false;
 
@@ -368,6 +370,22 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         }
         Log.i(LOG_TAG, "User is currently in these zones:"+currentZonesList);
 
-        // TODO: Start shift activity
+        listener.startShiftInterface(currentZones);
+    }
+
+    public interface startShiftListener{
+        public void startShiftInterface(ArrayList<Zone> shiftZones);
+    }
+
+    private startShiftListener listener;
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        try {
+            listener = (startShiftListener) context;
+        } catch (ClassCastException castException) {
+            /** The activity does not implement the listener. */
+        }
     }
 }
