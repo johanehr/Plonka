@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
@@ -51,6 +53,7 @@ public class RegisterUserActivity extends AppCompatActivity {
     private EditText password_confirm;
     private CheckBox checkbox_terms;
     private Button continueButton;
+    Vibrator vibrator;
 
     private String str_name;
     private String str_email;
@@ -64,6 +67,8 @@ public class RegisterUserActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register_user);
+
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
         personal_number = findViewById(R.id.editTextPersonalNumber); // EXTENSION: Use personal number to automatically fetch name, mobile, etc using some kind of look-up API
         name = findViewById(R.id.editTextName);
@@ -100,6 +105,7 @@ public class RegisterUserActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Log.i(LOG_TAG, "User clicked Continue button");
+                vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
                 gatherContent();
                 if (validateRegistrationDetails()){
                     registerUserToDb();

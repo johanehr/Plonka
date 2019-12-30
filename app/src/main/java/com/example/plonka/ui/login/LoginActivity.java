@@ -10,6 +10,8 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -30,6 +32,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private LoginViewModel loginViewModel;
     private String LOG_TAG = "PLONKA_LOGIN_ACTIVITY";
+    Vibrator vibrator;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -37,6 +40,8 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         loginViewModel = ViewModelProviders.of(this, new LoginViewModelFactory())
                 .get(LoginViewModel.class);
+
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
         final EditText usernameEditText = findViewById(R.id.username);
         usernameEditText.setShadowLayer(5, 0, 0, Color.BLACK);
@@ -127,6 +132,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.v(LOG_TAG, "loginButton clicked");
+                vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
                 Toast.makeText(getApplicationContext(), "Attempting to log in...", Toast.LENGTH_SHORT).show();
 
                 try {
@@ -143,6 +149,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "registerButton clicked!");
+                vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
                 // Move user to register activity when registerButton is clicked
                 Intent registerIntent = new Intent(getApplicationContext(), RegisterUserActivity.class);
                 startActivity(registerIntent);

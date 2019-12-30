@@ -31,6 +31,8 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
 
@@ -51,6 +53,8 @@ import com.example.plonka.R;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static android.content.Context.VIBRATOR_SERVICE;
+
 public class MapFragment extends Fragment implements OnMapReadyCallback{
 
     private GoogleMap mMap;
@@ -66,6 +70,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     private View root;
     private FloatingActionButton fabButton;
     private Button startWorkingButton;
+    Vibrator vibrator;
 
     private String LOG_TAG = "PLONKA_MAP_FRAGMENT";
 
@@ -91,6 +96,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     }
 
     public void initializeComponents(){
+
+        vibrator = (Vibrator) getActivity().getSystemService(VIBRATOR_SERVICE);
 
         // Set up periodic GPS-location request
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
@@ -169,6 +176,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
                     Log.w(LOG_TAG, " > Couldn't move to current user location, userLocation == null");
                     Toast.makeText(getActivity().getApplicationContext(), "Unknown location... Please try again.", Toast.LENGTH_SHORT).show();
                 }
+
+                vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
             }
         });
         Log.d(LOG_TAG, " > setup myLocationButton");
@@ -181,6 +190,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
                 if (insideZone){ // Additional check
                     Log.d(LOG_TAG, "Pressed work button while inside a zone!");
                     // Confirm move to new Activity using Dialog, https://developer.android.com/guide/topics/ui/dialogs
+                    vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
                     showStartShiftDialog();
                 }
             }

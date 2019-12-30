@@ -7,16 +7,21 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.plonka.PolyUtil;
@@ -39,9 +44,14 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import static java.lang.System.currentTimeMillis;
+import static java.lang.System.out;
 
 public class ShiftActivity extends FragmentActivity implements OnMapReadyCallback, EndShiftDialogFragment.EndShiftDialogListener {
 
@@ -53,11 +63,16 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     private LatLng userLocation;
     private ArrayList<Zone> shiftZones = new ArrayList<Zone>(); // All current shift zones, passed with activity intent
     private Button stopWorkingButton;
+    private FloatingActionButton fabButton;
+    private boolean outsideZone = false;
+    private Long leftZoneTimestamp; // Timestamp for when user left zone
+    private static final Long leftZoneMaximum = 120000L; //ms -> 120s -> 2 min
+    Vibrator vibrator;
 
     private LoggedInUser currentUser; // Contains necessary data for requesting data from DB
     private String LOG_TAG = "PLONKA_SHIFT_ACTIVITY";
     private static final int REQUEST_LOCATION_PERMISSIONS = 111;
-    private String [] permissions = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
+    private String[] permissions = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +86,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         String userPw = getIntent().getExtras().getString("userPw");
         String userName = getIntent().getExtras().getString("userName");
         currentUser = new LoggedInUser(userId, userPw, userName);
-        Log.i(LOG_TAG, "LoggedInUser: "+userId+" - "+userPw+" - "+userName);
+        Log.i(LOG_TAG, "LoggedInUser: " + userId + " - " + userPw + " - " + userName);
 
         // Retain knowledge of which zones to use for this shift
         Bundle zoneBundle = getIntent().getBundleExtra("zoneBundle");
@@ -80,21 +95,23 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_shift);
 
         // Check that user has agreed to location permissions - if not, activity is finished
-        if (!checkPermissions(permissions)){
+        if (!checkPermissions(permissions)) {
             Log.d(LOG_TAG, " > Requesting permissions");
             ActivityCompat.requestPermissions(this, permissions, REQUEST_LOCATION_PERMISSIONS); //this -> getActivity() ???
-        }
-        else{
+        } else {
             Log.d(LOG_TAG, " > Permissions already granted.");
             initializeComponents();
         }
     }
 
-    public void initializeComponents(){
+    public void initializeComponents() {
 
         Log.d(LOG_TAG, "called initializeComponents()");
+
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+
         // Set up periodic GPS-location request
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this); // TODO: getActivity()???
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(5000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
@@ -118,6 +135,40 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                 Log.d(LOG_TAG, "onLocationResult() called: " + gpsData);
 
                 userLocation = new LatLng(latitude, longitude);
+                Long currentTimestamp = System.currentTimeMillis();
+
+
+                // TODO: Handle inside/outside zone functionality
+
+                if (!checkInsideZone()) {
+                    if (!outsideZone) {
+                        // Transition to outside zone state (countdown to automatic termination of shift) if not already outside
+                        leftZoneTimestamp = System.currentTimeMillis();
+                        outsideZone = true;
+                        Log.e(LOG_TAG, "User has left the designated zone area.");
+
+                        // Alert user visually and with vibration
+                        Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "Warning! You have left the zone. Return within 2 minutes.", Snackbar.LENGTH_LONG);
+                        snackbar.show();
+
+                        // Something like this:       -   du   -   Du!
+                        long[] timings   = new long[]{0, 200, 200, 200}; // ms
+                        int[] amplitudes = new int[] {0, 128,   0, 200}; // 0-255
+                        vibrator.vibrate(VibrationEffect.createWaveform(timings,amplitudes, -1));
+                    }
+
+                    if (currentTimestamp - leftZoneTimestamp > leftZoneMaximum) {
+                        Log.e(LOG_TAG, "User has been outside of the designated zone area for too long. Terminating shift.");
+                        Toast.makeText(getApplicationContext(), "You left the zone for more than 2 minutes - session terminated.", Toast.LENGTH_LONG).show();
+                        endShift();
+                    }
+                } else if (outsideZone) {  // User has re-entered zone, transition to safe state
+                    outsideZone = false;
+                    Log.e(LOG_TAG, "User has re-entered the designated zone area.");
+                }
+
+                // TODO: Append to file: lat;long;timestamp;inside
+
             }
         };
 
@@ -131,15 +182,50 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        // Set up myLocationButton
+        // Set up stopWorkingButton
         stopWorkingButton = findViewById(R.id.stopWorkingButton);
         stopWorkingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "Pressed stop working button!");
+                vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
                 showEndShiftDialog();
             }
         });
+
+        // Set up myLocationButton
+        fabButton = findViewById(R.id.myLocationButton);
+        fabButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(LOG_TAG, "Pressed FAB!");
+                if (userLocation != null){
+                    CameraPosition cameraPosition = new CameraPosition.Builder()
+                            .target(userLocation)       // Sets the center of the map to Mountain View
+                            .zoom(16)                   // Sets the zoom
+                            .build();                   // Creates a CameraPosition from the builder
+                    mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 250, null); // Animation takes 250ms
+                    Log.d(LOG_TAG, "> Moved to current user location.");
+                }
+                else {
+                    Log.w(LOG_TAG, " > Couldn't move to current user location, userLocation == null");
+                    Toast.makeText(getApplicationContext(), "Unknown location... Please try again.", Toast.LENGTH_SHORT).show();
+                }
+                vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
+            }
+        });
+        Log.d(LOG_TAG, " > setup myLocationButton");
+
+        // Add pulsing animation to "Tracking your work" notice
+        TextView reminder = (TextView) findViewById(R.id.reminder);
+        ObjectAnimator scaleDown = ObjectAnimator.ofPropertyValuesHolder(
+                reminder,
+                PropertyValuesHolder.ofFloat("scaleX", 1.1f),
+                PropertyValuesHolder.ofFloat("scaleY", 1.1f));
+        scaleDown.setDuration(800);
+        scaleDown.setRepeatCount(ObjectAnimator.INFINITE);
+        scaleDown.setRepeatMode(ObjectAnimator.REVERSE);
+        scaleDown.start();
     }
 
     /**
@@ -218,25 +304,25 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     /**
      * Callback function when requesting permissions, to verify that user allows app recording behavior.
      *
-     * @param  requestCode  the request code used when triggering callback
-     * @param  permissions  array containing the permissions that were requested
-     * @param  grantResults array containing the permissions that were granted
+     * @param requestCode  the request code used when triggering callback
+     * @param permissions  array containing the permissions that were requested
+     * @param grantResults array containing the permissions that were granted
      */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         Log.d(LOG_TAG, "onRequestPermissionsResult() called");
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         boolean permissionsAccepted = false;
-        switch (requestCode){
+        switch (requestCode) {
             case REQUEST_LOCATION_PERMISSIONS:
-                permissionsAccepted  = (grantResults[0] == PackageManager.PERMISSION_GRANTED) && (grantResults[1] == PackageManager.PERMISSION_GRANTED);
+                permissionsAccepted = (grantResults[0] == PackageManager.PERMISSION_GRANTED) && (grantResults[1] == PackageManager.PERMISSION_GRANTED);
         }
-        Log.d(LOG_TAG, "onRequestPermissionsResult(): "+permissionsAccepted);
-        if (!permissionsAccepted ){
+        Log.d(LOG_TAG, "onRequestPermissionsResult(): " + permissionsAccepted);
+        if (!permissionsAccepted) {
             // User is required to allow location tracking - display error message
             Toast.makeText(this, getString(R.string.require_location_permissions), Toast.LENGTH_LONG).show();
             finish();
-        } else{
+        } else {
             initializeComponents();
         }
     }
@@ -253,7 +339,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     }
 
     // Note: Shading does not work well with overlapping holes - but outlines still show up and regular logic works
-    private void addZoneHolesToMap(ArrayList<Zone> activeZones){
+    private void addZoneHolesToMap(ArrayList<Zone> activeZones) {
         final float delta = 0.0001f;
         LatLng[] wholeWorld = new LatLng[9];
         wholeWorld[0] = new LatLng(90 - delta, -180 + delta);
@@ -268,10 +354,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
 
         PolygonOptions polyOpts = new PolygonOptions().clickable(true).add(wholeWorld);
 
-        for (Zone z : activeZones){
+        for (Zone z : activeZones) {
             LatLng[] coords = z.getCoords();
             ArrayList<LatLng> coordsIterable = new ArrayList<LatLng>();
-            for (int c = 0; c < coords.length; c++){
+            for (int c = 0; c < coords.length; c++) {
                 coordsIterable.add(coords[c]);
             }
             polyOpts.addHole(coordsIterable);
@@ -290,7 +376,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         showEndShiftDialog();
     }
 
-    private void showEndShiftDialog(){
+    private void showEndShiftDialog() {
         Log.i(LOG_TAG, "promptEndShift() called");
         EndShiftDialogFragment newFragment = new EndShiftDialogFragment();
         newFragment.show(getSupportFragmentManager(), "endShift");
@@ -302,18 +388,27 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     @Override
     public void onDialogPositiveClick(DialogFragment dialog) {
         // User touched the dialog's positive button
-        Log.i(LOG_TAG, "onDialogPositiveClick() called");
+        Log.d(LOG_TAG, "onDialogPositiveClick() called");
         endShift();
     }
 
     @Override
     public void onDialogNegativeClick(DialogFragment dialog) {
         // User touched the dialog's negative button, just cancels.
-        Log.i(LOG_TAG, "onDialogNegativeClick() called");
+        Log.d(LOG_TAG, "onDialogNegativeClick() called");
     }
 
-    private void endShift(){
+    private void endShift() {
         Log.i(LOG_TAG, "endShift() called");
-        // TODO: Launch new activity
+        // TODO: Close file and launch new activity
+    }
+
+    private boolean checkInsideZone() {
+        for (Zone z : shiftZones) {
+            if (PolyUtil.containsLocation(userLocation, Arrays.asList(z.getCoords()), true)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

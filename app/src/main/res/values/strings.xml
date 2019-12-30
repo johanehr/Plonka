@@ -47,6 +47,7 @@
 
     <!-- Strings related to shift activity -->
     <string name="title_activity_shift">Session</string>
+    <string name="tracking_reminder">Logging your location...</string>
     <string name="button_stop_working">End session</string>
 
     <string name="shift_dialog_title">End session?</string>
