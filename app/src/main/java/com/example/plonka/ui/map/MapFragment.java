@@ -5,14 +5,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 
 import com.example.plonka.AsyncGetZonesTask;
 import com.example.plonka.Zone;
 import com.example.plonka.PolyUtil;
-import com.example.plonka.ui.ShiftActivity;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -46,7 +44,6 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import com.example.plonka.R;
 

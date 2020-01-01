@@ -22,7 +22,7 @@ public class FaqFragment extends Fragment {
 
         View root = inflater.inflate(R.layout.fragment_faq, container, false);
         WebView webView = root.findViewById(R.id.webview);
-        webView.loadUrl("https://www.google.com"); // TODO: Replace with actual FAQ-website, but not necessary for this assignment
+        webView.loadUrl("https://people.dsv.su.se/~joeh1022/how-does-it-work.php"); // TODO: Replace with full-blown FAQ-website, but not necessary for this assignment
 
         // Enable Javascript
         WebSettings webSettings = webView.getSettings();

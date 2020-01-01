@@ -10,6 +10,7 @@ import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -26,6 +27,7 @@ import android.widget.Toast;
 
 import com.example.plonka.PolyUtil;
 import com.example.plonka.R;
+import com.example.plonka.SessionLog;
 import com.example.plonka.Zone;
 import com.example.plonka.data.model.LoggedInUser;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -53,6 +55,12 @@ import java.util.Arrays;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.out;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+
 public class ShiftActivity extends FragmentActivity implements OnMapReadyCallback, EndShiftDialogFragment.EndShiftDialogListener {
 
     private GoogleMap mMap;
@@ -64,15 +72,18 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     private ArrayList<Zone> shiftZones = new ArrayList<Zone>(); // All current shift zones, passed with activity intent
     private Button stopWorkingButton;
     private FloatingActionButton fabButton;
-    private boolean outsideZone = false;
+    private boolean outsideZone = true; // Assumed to always be true when starting activity
     private Long leftZoneTimestamp; // Timestamp for when user left zone
-    private static final Long leftZoneMaximum = 120000L; //ms -> 120s -> 2 min
-    Vibrator vibrator;
-
     private LoggedInUser currentUser; // Contains necessary data for requesting data from DB
-    private String LOG_TAG = "PLONKA_SHIFT_ACTIVITY";
+    private Vibrator vibrator;
+    private File logFile;
+    private ArrayList<SessionLog> sessionLogList;
+
+    private static final String LOG_TAG = "PLONKA_SHIFT_ACTIVITY";
+    private static final String logFileName = "session.log";
     private static final int REQUEST_LOCATION_PERMISSIONS = 111;
-    private String[] permissions = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
+    private static final String[] permissions = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
+    private static final Long leftZoneMaximum = 120000L; //ms -> 120s -> 2 min
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,16 +121,32 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
+        // Set up file for logging session information
+        Context context = getApplicationContext();
+        logFile = new File(context.getFilesDir(), logFileName);
+        if(!logFile.exists()) {
+            Log.i(LOG_TAG, "Session log file does not exist. Creating...");
+            try {
+                FileOutputStream outputStream = openFileOutput(logFileName, Context.MODE_PRIVATE);
+                outputStream.close();
+                Log.i(LOG_TAG, "Created empty file: "+logFileName);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        else {
+            sessionLogList = readLogFile(); // Possible to continue on existing file, i.e. if app crashes before ending shift properly (which clears file).
+        }
+
         // Set up periodic GPS-location request
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         locationRequest = LocationRequest.create();
-        locationRequest.setInterval(5000);
+        locationRequest.setInterval(10000); // Every 10s
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                Log.d(LOG_TAG, "called locationCallback()");
                 if (locationResult == null) {
                     Log.w(LOG_TAG, "LocationCallback(): locationResult == null");
                     return;
@@ -138,9 +165,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                 Long currentTimestamp = System.currentTimeMillis();
 
 
-                // TODO: Handle inside/outside zone functionality
-
-                if (!checkInsideZone()) {
+                if (!checkInsideZone()) { // Check current status, but don't update outsideZone yet!
                     if (!outsideZone) {
                         // Transition to outside zone state (countdown to automatic termination of shift) if not already outside
                         leftZoneTimestamp = System.currentTimeMillis();
@@ -162,13 +187,13 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                         Toast.makeText(getApplicationContext(), "You left the zone for more than 2 minutes - session terminated.", Toast.LENGTH_LONG).show();
                         endShift();
                     }
-                } else if (outsideZone) {  // User has re-entered zone, transition to safe state
+                } else if (outsideZone) {  // Outside -> inside: i.e. user has re-entered zone, transition to safe state
                     outsideZone = false;
                     Log.e(LOG_TAG, "User has re-entered the designated zone area.");
                 }
 
-                // TODO: Append to file: lat;long;timestamp;inside
-
+                // Log path of user
+                sessionLogList.add(new SessionLog(currentTimestamp, userLocation, !outsideZone));
             }
         };
 
@@ -178,8 +203,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         startLocationUpdates();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         // Set up stopWorkingButton
@@ -400,7 +424,16 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
 
     private void endShift() {
         Log.i(LOG_TAG, "endShift() called");
-        // TODO: Close file and launch new activity
+
+        Toast.makeText(this, "endShift() called", Toast.LENGTH_LONG).show();
+        if (writeLogFile())
+        {
+            Log.i(LOG_TAG, "Successfully wrote to log file.");
+        }else{
+            Log.e(LOG_TAG, "Failure when writing to log file!");
+        }
+
+        // TODO: Launch new activity
     }
 
     private boolean checkInsideZone() {
@@ -410,5 +443,54 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
             }
         }
         return false;
+    }
+
+    // TODO: Move to final activity
+    public ArrayList<SessionLog> readLogFile(){
+        ArrayList<SessionLog> sessionLogList = new ArrayList<>();
+        try {
+            FileInputStream inputStream = getApplicationContext().openFileInput(logFileName);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            while(true){
+                String line = reader.readLine();
+                if (line != null){
+                    String[] data = line.split(",");
+                    Log.i(LOG_TAG, " - "+Arrays.toString(data));
+                    SessionLog item = new SessionLog(
+                            Long.parseLong(data[0]),
+                            new LatLng(Double.parseDouble(data[1]), Double.parseDouble(data[2])),
+                            data[3].equals("true")
+                    );
+                    sessionLogList.add(item);
+                }
+                else{
+                    Log.i(LOG_TAG, "Reached end of file");
+                    break; // No more lines to read
+                }
+            }
+        }
+        catch (Exception e){
+            Log.i(LOG_TAG, "Problem reading from current session log file...");
+            e.printStackTrace();
+        }
+        return sessionLogList;
+    }
+
+    public boolean writeLogFile(){
+        try {
+            Log.i(LOG_TAG, "Re-writing session log file:");
+            FileOutputStream outputStream = openFileOutput(logFileName, Context.MODE_PRIVATE);
+            for (SessionLog item : sessionLogList){
+                outputStream.write(item.toLogLine(false).getBytes());
+                Log.i(LOG_TAG, " - "+item.toLogLine(false));
+            }
+            outputStream.close();
+            Log.i(LOG_TAG, "Wrote session log to file.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 }
