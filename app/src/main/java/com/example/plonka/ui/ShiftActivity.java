@@ -2,14 +2,12 @@ package com.example.plonka.ui;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -42,7 +40,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -51,9 +48,6 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import static java.lang.System.currentTimeMillis;
-import static java.lang.System.out;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -158,12 +152,11 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                 double longitude = lastLocation.getLongitude();
                 double accuracy = lastLocation.getAccuracy();
 
-                String gpsData = "\nlat:" + latitude + "\nlong:" + longitude + "\naccuracy: " + accuracy + "m";
-                Log.d(LOG_TAG, "onLocationResult() called: " + gpsData);
-
                 userLocation = new LatLng(latitude, longitude);
                 Long currentTimestamp = System.currentTimeMillis();
 
+                String gpsData = "\nlat:" + latitude + "\nlong:" + longitude + "\naccuracy: " + accuracy + "m\ntimestamp: " + currentTimestamp;
+                Log.d(LOG_TAG, "onLocationResult() called: " + gpsData);
 
                 if (!checkInsideZone()) { // Check current status, but don't update outsideZone yet!
                     if (!outsideZone) {
@@ -193,7 +186,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                 }
 
                 // Log path of user
-                sessionLogList.add(new SessionLog(currentTimestamp, userLocation, !outsideZone));
+                sessionLogList.add(new SessionLog(currentTimestamp, userLocation, !outsideZone)); // TODO: Occasionally get: java.lang.NullPointerException: Attempt to invoke virtual method 'boolean java.util.ArrayList.add(java.lang.Object)' on a null object reference
             }
         };
 
@@ -401,7 +394,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     }
 
     private void showEndShiftDialog() {
-        Log.i(LOG_TAG, "promptEndShift() called");
+        Log.i(LOG_TAG, "showEndShiftDialog() called");
         EndShiftDialogFragment newFragment = new EndShiftDialogFragment();
         newFragment.show(getSupportFragmentManager(), "endShift");
     }
@@ -433,7 +426,13 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
             Log.e(LOG_TAG, "Failure when writing to log file!");
         }
 
-        // TODO: Launch new activity
+        // Log in details passed on to new activity. TECHNICAL DEBT: use parcelable instead of multiple putExtra fields
+        Intent endIntent = new Intent(getApplicationContext(), EndShiftActivity.class);
+        endIntent.putExtra("userPw", currentUser.getPassword());
+        endIntent.putExtra("userId",currentUser.getAccountId());
+        endIntent.putExtra("userName", currentUser.getDisplayName());
+        startActivity(endIntent);
+        finish(); // Won't return to this activity
     }
 
     private boolean checkInsideZone() {
@@ -445,7 +444,23 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         return false;
     }
 
-    // TODO: Move to final activity
+    public boolean writeLogFile(){
+        try {
+            Log.i(LOG_TAG, "Re-writing session log file:");
+            FileOutputStream outputStream = openFileOutput(logFileName, Context.MODE_PRIVATE);
+            for (SessionLog item : sessionLogList){
+                outputStream.write(item.toLogLine(false).getBytes());
+                Log.i(LOG_TAG, " - "+item.toLogLine(false));
+            }
+            outputStream.close();
+            Log.i(LOG_TAG, "Wrote session log to file.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
     public ArrayList<SessionLog> readLogFile(){
         ArrayList<SessionLog> sessionLogList = new ArrayList<>();
         try {
@@ -456,7 +471,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                 String line = reader.readLine();
                 if (line != null){
                     String[] data = line.split(",");
-                    Log.i(LOG_TAG, " - "+Arrays.toString(data));
+                    Log.i(LOG_TAG, " - "+ Arrays.toString(data));
                     SessionLog item = new SessionLog(
                             Long.parseLong(data[0]),
                             new LatLng(Double.parseDouble(data[1]), Double.parseDouble(data[2])),
@@ -475,22 +490,5 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
             e.printStackTrace();
         }
         return sessionLogList;
-    }
-
-    public boolean writeLogFile(){
-        try {
-            Log.i(LOG_TAG, "Re-writing session log file:");
-            FileOutputStream outputStream = openFileOutput(logFileName, Context.MODE_PRIVATE);
-            for (SessionLog item : sessionLogList){
-                outputStream.write(item.toLogLine(false).getBytes());
-                Log.i(LOG_TAG, " - "+item.toLogLine(false));
-            }
-            outputStream.close();
-            Log.i(LOG_TAG, "Wrote session log to file.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
     }
 }

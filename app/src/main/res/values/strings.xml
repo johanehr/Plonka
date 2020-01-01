@@ -55,4 +55,13 @@
     <string name="shift_dialog_pos">End session</string>
     <string name="shift_dialog_neg">Keep working</string>
 
+    <!-- Strings related to ending shift activity -->
+    <string name="end_shift_dialog_title">Abandon session?</string>
+    <string name="end_shift_dialog_message">By abandoning your session, you will not receive any compensation! All information about your session will be lost.</string>
+    <string name="end_shift_dialog_pos">Abandon session</string>
+    <string name="end_shift_dialog_neg">Cancel</string>
+
+    <string name="button_submit_shift">Submit photo</string>
+    <string name="button_abandon_shift">Abandon</string>
+
 </resources>

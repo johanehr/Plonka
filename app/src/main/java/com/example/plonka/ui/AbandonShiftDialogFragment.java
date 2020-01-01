@@ -10,26 +10,25 @@ import androidx.fragment.app.DialogFragment;
 
 import com.example.plonka.R;
 
-public class EndShiftDialogFragment extends DialogFragment {
-
+public class AbandonShiftDialogFragment extends DialogFragment {
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setMessage(R.string.shift_dialog_message)
-                .setTitle(R.string.shift_dialog_title)
-                .setPositiveButton(R.string.shift_dialog_pos, new DialogInterface.OnClickListener() {
+        builder.setMessage(R.string.end_shift_dialog_message)
+                .setTitle(R.string.end_shift_dialog_title)
+                .setPositiveButton(R.string.end_shift_dialog_pos, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // Send the pos button event back to the host activity
-                        listener.onDialogPositiveClick(EndShiftDialogFragment.this);
+                        listener.onDialogPositiveClick(AbandonShiftDialogFragment.this);
                     }
                 })
 
-                .setNegativeButton(R.string.shift_dialog_neg, new DialogInterface.OnClickListener() {
+                .setNegativeButton(R.string.end_shift_dialog_neg, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // Send the neg button event back to the host activity
-                        listener.onDialogNegativeClick(EndShiftDialogFragment.this);
+                        listener.onDialogNegativeClick(AbandonShiftDialogFragment.this);
                     }
                 });
 
@@ -37,29 +36,32 @@ public class EndShiftDialogFragment extends DialogFragment {
         return builder.create();
     }
 
+
+
     /* The activity that creates an instance of this dialog fragment must
      * implement this interface in order to receive event callbacks.
      * Each method passes the DialogFragment in case the host needs to query it. */
-    public interface EndShiftDialogListener {
+    public interface AbandonShiftDialogListener {
         public void onDialogPositiveClick(DialogFragment dialog);
         public void onDialogNegativeClick(DialogFragment dialog);
     }
 
     // Use this instance of the interface to deliver action events
-    EndShiftDialogListener listener;
+    AbandonShiftDialogListener listener;
 
-    // Override the Fragment.onAttach() method to instantiate the NoticeDialogListener
+    // Override the Fragment.onAttach() method to instantiate the AbandonShiftDialogListener
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         // Verify that the host activity implements the callback interface
         try {
-            // Instantiate the NoticeDialogListener so we can send events to the host
-            listener = (EndShiftDialogListener) context;
+            // Instantiate the AbandonShiftDialogListener so we can send events to the host
+            listener = (AbandonShiftDialogListener) context;
         } catch (ClassCastException e) {
             // The activity doesn't implement the interface, throw exception
-            throw new ClassCastException("Parent activity must implement EndShiftDialogListener");
+            throw new ClassCastException("Parent activity must implement AbandonShiftDialogListener");
         }
     }
 }
+
 

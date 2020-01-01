@@ -135,7 +135,6 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
 
     @Override
     public void startShiftInterface(ArrayList<Zone> zones){
-        // TODO: Pass active zones in a suitable manner
         Log.i(LOG_TAG, "RECEIVED START_SHIFT_INTERFACE!");
 
         // Log in details passed on to new activity. TECHNICAL DEBT: use parcelable instead of multiple putExtra fields
