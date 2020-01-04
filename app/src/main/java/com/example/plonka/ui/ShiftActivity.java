@@ -46,6 +46,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -71,7 +72,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     private LoggedInUser currentUser; // Contains necessary data for requesting data from DB
     private Vibrator vibrator;
     private File logFile;
-    private ArrayList<SessionLog> sessionLogList;
+    private ArrayList<SessionLog> sessionLogList = new ArrayList<>();
 
     private static final String LOG_TAG = "PLONKA_SHIFT_ACTIVITY";
     private static final String logFileName = "session.log";
@@ -102,7 +103,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         // Check that user has agreed to location permissions - if not, activity is finished
         if (!checkPermissions(permissions)) {
             Log.d(LOG_TAG, " > Requesting permissions");
-            ActivityCompat.requestPermissions(this, permissions, REQUEST_LOCATION_PERMISSIONS); //this -> getActivity() ???
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_LOCATION_PERMISSIONS);
         } else {
             Log.d(LOG_TAG, " > Permissions already granted.");
             initializeComponents();
@@ -186,7 +187,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
                 }
 
                 // Log path of user
-                sessionLogList.add(new SessionLog(currentTimestamp, userLocation, !outsideZone)); // TODO: Occasionally get: java.lang.NullPointerException: Attempt to invoke virtual method 'boolean java.util.ArrayList.add(java.lang.Object)' on a null object reference
+                sessionLogList.add(new SessionLog(currentTimestamp, userLocation, !outsideZone));
             }
         };
 
@@ -305,7 +306,6 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         super.onResume();
         if (checkPermissions()) {
             startLocationUpdates();
-            // TODO: Handle switching between activities??? Is GPS trail saved?
         }
     }
 
@@ -431,6 +431,11 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         endIntent.putExtra("userPw", currentUser.getPassword());
         endIntent.putExtra("userId",currentUser.getAccountId());
         endIntent.putExtra("userName", currentUser.getDisplayName());
+
+        Bundle zoneBundle = new Bundle();
+        zoneBundle.putSerializable("zones", (Serializable) shiftZones);
+        endIntent.putExtra("zoneBundle", zoneBundle);
+
         startActivity(endIntent);
         finish(); // Won't return to this activity
     }

@@ -61,7 +61,9 @@
     <string name="end_shift_dialog_pos">Abandon session</string>
     <string name="end_shift_dialog_neg">Cancel</string>
 
-    <string name="button_submit_shift">Submit photo</string>
+    <string name="button_submit_shift">Submit</string>
     <string name="button_abandon_shift">Abandon</string>
+
+    <string name="end_shift_instructions">Capture a photo of your bag of collected litter next to a trash can. This shows the amount and that you have properly disposed of it.</string>
 
 </resources>

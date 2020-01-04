@@ -1,35 +1,69 @@
 package com.example.plonka.ui;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.DialogFragment;
 
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.Toast;
 
 import com.example.plonka.R;
 import com.example.plonka.SessionLog;
+import com.example.plonka.Zone;
+import com.example.plonka.data.model.LoggedInUser;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.maps.model.LatLng;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 
 public class EndShiftActivity extends AppCompatActivity implements AbandonShiftDialogFragment.AbandonShiftDialogListener {
 
-    private ArrayList<SessionLog> sessionLogList;
     private static final String LOG_TAG = "PLONKA_END_SHIFT_ACTIVITY";
+    private static final int REQUEST_IMAGE_CAPTURE = 1337;  // The request code used to match an intent with the activity result callback
     private static final String logFileName = "session.log";
+
+    private ArrayList<SessionLog> sessionLogList;
+    private ArrayList<Zone> shiftZones;
+    private ArrayList<Integer> zoneIds = new ArrayList<>();
+    private LoggedInUser currentUser;
+
+    private String currentPhotoPath;
+    private String photoFileName;
+    private String tempPhotoFileName;
+    private String tempCurrentPhotoPath;
 
     private Button abandonButton;
     private Button submitPhotoButton;
+    private ImageButton photoButton;
     private Vibrator vibrator;
 
     @Override
@@ -37,15 +71,30 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_end_shift);
 
-        // TODO: Get user information! (necessary for DB insertion)
+        // Get user information (necessary for DB insertion)
+        Integer userId = getIntent().getExtras().getInt("userId");
+        String userPw = getIntent().getExtras().getString("userPw");
+        String userName = getIntent().getExtras().getString("userName");
+        currentUser = new LoggedInUser(userId, userPw, userName);
+        Log.i(LOG_TAG, "LoggedInUser: " + userId + " - " + userPw + " - " + userName);
+
+        // Retain knowledge of which zones were used for this shift
+        Bundle zoneBundle = getIntent().getBundleExtra("zoneBundle");
+        shiftZones = (ArrayList<Zone>) zoneBundle.getSerializable("zones");
+
+        for (Zone z : shiftZones){
+            zoneIds.add(z.getIdentifier());
+        }
+        Log.i(LOG_TAG, "Shift took place in zones with IDs: "+zoneIds.toString());
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
         sessionLogList = readLogFile();
 
-        // TODO: Set up user interface (Abandon, Submit photo and end session, Image viewer with photo opportunity)
+        // Set up user interface
         abandonButton = findViewById(R.id.abandonButton);
         submitPhotoButton = findViewById(R.id.submitButton);
+        photoButton = findViewById(R.id.photoButton);
 
         abandonButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -56,8 +105,40 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
             }
         });
 
-        // TODO: Post to DB/webserver using PHP. If successful, call clearLogFile()
-        // TODO: How to name photo? UserId_timestamp.png, should be unique? (see microphone app)
+        submitPhotoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(LOG_TAG, "Pressed submit button!");
+                vibrator.vibrate(VibrationEffect.createOneShot(30, 30));
+                uploadSessionToDb();
+            }
+        });
+
+        // Based on example at: https://developer.android.com/training/camera/photobasics.html
+        photoButton.setOnClickListener(new ImageButton.OnClickListener() {
+            public void onClick(View v) {
+                Log.d(LOG_TAG, "Pressed photo button!");
+                // Code here executes on main thread after user presses button
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                    File photoFile = null; // Create the File where the photo should go
+                    try {
+                        photoFile = createImageFile(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()), currentUser.getAccountId());
+                    } catch (IOException ex) {
+                        Log.w(LOG_TAG, "Image file creation failed.");
+                    }
+                    // Continue only if the File was successfully created
+                    if (photoFile != null) {
+                        Uri photoURI = FileProvider.getUriForFile(getApplicationContext(),
+                                "com.example.android.fileprovider",
+                                photoFile);
+                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                        startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                        // TODO: If back button pressed when taking photo, path is overwritten without an image actually being saved...
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -88,12 +169,12 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         Log.d(LOG_TAG, "onDialogNegativeClick() called");
     }
 
-    public ArrayList<SessionLog> readLogFile(){
+    private ArrayList<SessionLog> readLogFile(){
         ArrayList<SessionLog> sessionLogList = new ArrayList<>();
         try {
             FileInputStream inputStream = getApplicationContext().openFileInput(logFileName);
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
+            Log.i(LOG_TAG, "Reading from session log file:");
             while(true){
                 String line = reader.readLine();
                 if (line != null){
@@ -127,5 +208,165 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         else{
             Log.e(LOG_TAG, "Error removing log file!");
         }
+    }
+
+    private void uploadSessionToDb() {
+        class AsyncUploadSessionTask extends AsyncTask<Void, Void, String> {
+            @Override
+            protected String doInBackground(Void... voids) {
+                Log.i(LOG_TAG, "called doInBackground()");
+
+                HashMap<String, String> params = new HashMap<>();
+
+                params.put("user_id", Integer.toString(currentUser.getAccountId()));
+                params.put("psw", currentUser.getPassword());
+                params.put("zone_ids", zoneIds.toString());
+                params.put("location_info", generateSessionsStringForDb(sessionLogList));
+                params.put("img_path", photoFileName);
+
+                // TODO: Actually upload image file to webserver! https://stackoverflow.com/questions/34915556/post-a-file-with-other-form-data-using-httpurlconnection
+
+                StringBuilder sbParams = new StringBuilder();
+                int i = 0;
+                for (String key : params.keySet()) {
+                    try {
+                        if (i != 0) { // Only include ampersand if non-first key
+                            sbParams.append("&");
+                        }
+                        sbParams.append(key).append("=").append(URLEncoder.encode(params.get(key), "UTF-8"));
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    i++;
+                }
+
+                Log.i(LOG_TAG, "Built string: " + sbParams.toString());
+
+                HttpURLConnection conn;
+                String res = "";
+                try {
+                    URL url = new URL("https://people.dsv.su.se/~joeh1022/scripts/upload_shift.php");
+                    conn = (HttpURLConnection) url.openConnection();
+                    conn.setDoOutput(true);
+                    conn.setRequestMethod("POST");
+                    conn.setReadTimeout(2000);
+                    conn.setConnectTimeout(2000);
+
+                    conn.connect();
+
+                    DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+                    wr.writeBytes(sbParams.toString());
+                    wr.flush();
+                    wr.close();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return e.toString();
+                }
+                try {
+                    InputStream in = new BufferedInputStream(conn.getInputStream());
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                    StringBuilder result = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        result.append(line);
+                    }
+                    res = result.toString();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (conn != null) {
+                        conn.disconnect();
+                    }
+                    Log.d(LOG_TAG, "Submission success: " + res.contains("success") + "\nResult from server: \n" + res);
+                }
+                return res; // If success is included in php output, SQL insert worked!
+            }
+
+            @Override
+            protected void onPostExecute(String res) {
+                super.onPostExecute(res);
+            }
+        }
+
+        Log.i(LOG_TAG, "Called uploadSessionToDb()");
+        AsyncUploadSessionTask uploadShiftTask = new AsyncUploadSessionTask();
+        String uploadShiftOutput = "AsyncUploadSessionTask failed"; // Changed if successful
+        try {
+            uploadShiftOutput = uploadShiftTask.execute().get();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "AsyncUploadSessionTask.execute() failed: " + e.toString());
+        }
+
+        Log.i(LOG_TAG, "Output: " + uploadShiftOutput);
+
+        Toast.makeText(getApplicationContext(), uploadShiftOutput, Toast.LENGTH_LONG).show(); // Shows confirmation/error msg from server
+        if (uploadShiftOutput.contains("Uploaded successfully!")) {
+            // Send user back to hub activity if successfully submitted
+            // TODO: Remove image file(s)? Don't want to use up storage unnecessarily...
+            clearLogFile();
+            finish();
+        }
+
+        Log.i(LOG_TAG, "Exit uploadSessionToDb()");
+    }
+
+    private File createImageFile(String timestamp, Integer userId) throws IOException {
+        // Create an image file name
+
+        String imageFileName = Integer.toString(userId) + "_" + timestamp ;
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",   /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents. Note that this is temporary until the user has actually saved an image.
+        tempPhotoFileName = imageFileName + ".jpg";
+        tempCurrentPhotoPath = image.getAbsolutePath();
+        Log.i(LOG_TAG, "Image will be saved to path: "+tempCurrentPhotoPath);
+        return image;
+    }
+
+    /**
+     * Fetches the image at currentPhotoPath and sets it as the ImageButton background
+     *
+     * @param  requestCode  Request identifier to filter out requests
+     * @param  resultCode Used to verify whether the activity had an OK result
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            try {
+                Log.d(LOG_TAG, "Image saved at specified path!");
+                currentPhotoPath = tempCurrentPhotoPath; // No longer temporary
+                photoFileName = tempPhotoFileName;
+                File file = new File(currentPhotoPath);
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getApplicationContext().getContentResolver(), Uri.fromFile(file));
+                photoButton.setImageBitmap(bitmap);
+
+                // Activate submit button now that a photo has been taken
+                submitPhotoButton.setEnabled(true);
+                submitPhotoButton.setClickable(true);
+                submitPhotoButton.setBackground(ContextCompat.getDrawable(this, R.drawable.rounded_button));
+
+            } catch (Exception error) {
+                error.printStackTrace();
+            }
+        }
+    }
+
+    // Generate a single String to save in database on repeating format: <timestamp>,<latitude>,<longitude>,<isInsideZone? true/false>;
+    // Split on ';' to get each SessionLog, and then on ',' to get individual values.
+    private String generateSessionsStringForDb(ArrayList<SessionLog> sessions){
+        String stringForDb = "";
+        for (SessionLog s : sessions){
+            stringForDb += s.toLogLine(true);
+        }
+        Log.i(LOG_TAG, "Generated sessions string for DB:\n"+stringForDb);
+        return stringForDb;
     }
 }
