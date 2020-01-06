@@ -22,7 +22,7 @@
     <string name="accept_terms">I have read and accept the Terms &amp; Conditions and Privacy Policy.</string>
     <string name="continue_button">Continue</string>
 
-    <!-- Strings related to map hub activity -->
+    <!-- Strings related to hub activity -->
     <string name="require_location_permissions">To use Plonka, you need to allow location tracking. Closing app.</string>
     <string name="button_start_working">Start working</string>
     <string name="button_start_working_inactive">Enter a zone</string>
@@ -44,6 +44,8 @@
     <string name="menu_faq">FAQ</string>
     <string name="menu_support_email">Email</string>
     <string name="menu_support_phone">Phone</string>
+
+    <string name="shift_history_instructions">Phone</string>
 
     <!-- Strings related to shift activity -->
     <string name="title_activity_shift">Session</string>
