@@ -44,6 +44,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class EndShiftActivity extends AppCompatActivity implements AbandonShiftDialogFragment.AbandonShiftDialogListener {
 
@@ -55,6 +57,7 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
     private ArrayList<Zone> shiftZones;
     private ArrayList<Integer> zoneIds = new ArrayList<>();
     private LoggedInUser currentUser;
+    private File image;
 
     private String currentPhotoPath;
     private String photoFileName;
@@ -121,20 +124,18 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
                 // Code here executes on main thread after user presses button
                 Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-                    File photoFile = null; // Create the File where the photo should go
                     try {
-                        photoFile = createImageFile(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()), currentUser.getAccountId());
+                        createImageFile(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()), currentUser.getAccountId());
                     } catch (IOException ex) {
                         Log.w(LOG_TAG, "Image file creation failed.");
                     }
                     // Continue only if the File was successfully created
-                    if (photoFile != null) {
+                    if (image != null) {
                         Uri photoURI = FileProvider.getUriForFile(getApplicationContext(),
                                 "com.example.android.fileprovider",
-                                photoFile);
+                                image);
                         takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                         startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-                        // TODO: If back button pressed when taking photo, path is overwritten without an image actually being saved...
                     }
                 }
             }
@@ -210,6 +211,7 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         }
     }
 
+    // Upload image and session information to webserver, partially based on example at https://stackoverflow.com/questions/34915556/post-a-file-with-other-form-data-using-httpurlconnection, https://stackoverflow.com/questions/19026256/how-to-upload-multipart-form-data-and-image-to-server-in-android/26145565#26145565
     private void uploadSessionToDb() {
         class AsyncUploadSessionTask extends AsyncTask<Void, Void, String> {
             @Override
@@ -217,45 +219,81 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
                 Log.i(LOG_TAG, "called doInBackground()");
 
                 HashMap<String, String> params = new HashMap<>();
-
                 params.put("user_id", Integer.toString(currentUser.getAccountId()));
                 params.put("psw", currentUser.getPassword());
                 params.put("zone_ids", zoneIds.toString());
                 params.put("location_info", generateSessionsStringForDb(sessionLogList));
                 params.put("img_path", photoFileName);
 
-                // TODO: Actually upload image file to webserver! https://stackoverflow.com/questions/34915556/post-a-file-with-other-form-data-using-httpurlconnection
-
-                StringBuilder sbParams = new StringBuilder();
-                int i = 0;
-                for (String key : params.keySet()) {
-                    try {
-                        if (i != 0) { // Only include ampersand if non-first key
-                            sbParams.append("&");
-                        }
-                        sbParams.append(key).append("=").append(URLEncoder.encode(params.get(key), "UTF-8"));
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
-                    i++;
-                }
-
-                Log.i(LOG_TAG, "Built string: " + sbParams.toString());
-
                 HttpURLConnection conn;
                 String res = "";
+
+                String twoHyphens = "--";
+                String boundary = "*****" + Long.toString(System.currentTimeMillis()) + "*****";
+                String lineEnd = "\r\n";
+                int bytesRead, bytesAvailable, bufferSize;
+                byte[] buffer;
+                int maxBufferSize = 1 * 1024 * 1024;
+                String[] q = currentPhotoPath.split("/");
+                int idx = q.length - 1;
+
                 try {
+                    File photoFile = new File(currentPhotoPath);
+                    FileInputStream fileInputStream = new FileInputStream(photoFile);
+
                     URL url = new URL("https://people.dsv.su.se/~joeh1022/scripts/upload_shift.php");
                     conn = (HttpURLConnection) url.openConnection();
                     conn.setDoOutput(true);
+                    conn.setDoInput(true);
+                    conn.setUseCaches(false);
                     conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Connection", "Keep-Alive");
+                    conn.setRequestProperty("User-Agent", "Android Multipart HTTP Client 1.0");
+                    conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
                     conn.setReadTimeout(2000);
                     conn.setConnectTimeout(2000);
 
                     conn.connect();
 
                     DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
-                    wr.writeBytes(sbParams.toString());
+
+                    // Upload image
+                    wr.writeBytes(twoHyphens + boundary + lineEnd);
+                    wr.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + q[idx] + "\"" + lineEnd);
+                    wr.writeBytes("Content-Type: image/jpeg" + lineEnd);
+                    wr.writeBytes("Content-Transfer-Encoding: binary" + lineEnd);
+                    wr.writeBytes(lineEnd);
+                    bytesAvailable = fileInputStream.available();
+                    bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                    buffer = new byte[bufferSize];
+                    bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                    while (bytesRead > 0) {
+                        wr.write(buffer, 0, bufferSize);
+                        bytesAvailable = fileInputStream.available();
+                        bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                        bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                    }
+                    wr.writeBytes(lineEnd);
+
+                    // Upload POST data
+                    Iterator<String> keys = params.keySet().iterator();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        String value = params.get(key);
+
+                        wr.writeBytes(twoHyphens + boundary + lineEnd);
+                        wr.writeBytes("Content-Disposition: form-data; name=\"" + key + "\"" + lineEnd);
+                        wr.writeBytes("Content-Type: text/plain" + lineEnd);
+                        wr.writeBytes(lineEnd);
+                        wr.writeBytes(value);
+                        wr.writeBytes(lineEnd);
+                    }
+
+                    if (200 != conn.getResponseCode()) {
+                        Log.e(LOG_TAG, "Failed to upload code:" + conn.getResponseCode() + " " + conn.getResponseMessage());
+                    }
+
+                    fileInputStream.close();
                     wr.flush();
                     wr.close();
 
@@ -304,30 +342,26 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         Toast.makeText(getApplicationContext(), uploadShiftOutput, Toast.LENGTH_LONG).show(); // Shows confirmation/error msg from server
         if (uploadShiftOutput.contains("Uploaded successfully!")) {
             // Send user back to hub activity if successfully submitted
-            // TODO: Remove image file(s)? Don't want to use up storage unnecessarily...
             clearLogFile();
+            image.delete(); // NOTE: This only deletes the final image taken. As an extension, the directory should be traversed and cleared of this type of image (but user can clear app storage manually if this is an issue)
             finish();
         }
 
         Log.i(LOG_TAG, "Exit uploadSessionToDb()");
     }
 
-    private File createImageFile(String timestamp, Integer userId) throws IOException {
+    private void createImageFile(String timestamp, Integer userId) throws IOException {
         // Create an image file name
 
         String imageFileName = Integer.toString(userId) + "_" + timestamp ;
+        Log.i(LOG_TAG, "imageFileName: "+imageFileName);
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",   /* suffix */
-                storageDir      /* directory */
-        );
+        image = new File(storageDir, imageFileName + ".jpg");
 
         // Save a file: path for use with ACTION_VIEW intents. Note that this is temporary until the user has actually saved an image.
         tempPhotoFileName = imageFileName + ".jpg";
         tempCurrentPhotoPath = image.getAbsolutePath();
         Log.i(LOG_TAG, "Image will be saved to path: "+tempCurrentPhotoPath);
-        return image;
     }
 
     /**
