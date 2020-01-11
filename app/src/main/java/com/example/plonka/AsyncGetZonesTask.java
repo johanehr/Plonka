@@ -18,10 +18,16 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-// Good guide: https://medium.com/@suragch/android-asynctasks-99e501e637e5
+/**
+ * AsyncGetZonesTask is used to fetch available zones from an online database by calling a PHP-script
+ * This guide was used as inspiration: https://medium.com/@suragch/android-asynctasks-99e501e637e5
+ */
 public class AsyncGetZonesTask extends AsyncTask<Void, Void, ArrayList<Zone>> {
 
-    // From: https://stackoverflow.com/questions/12575068/how-to-get-the-result-of-onpostexecute-to-main-activity-because-asynctask-is-a
+    /**
+     * Interface used to receive the response from async task
+     * Inspired by: https://stackoverflow.com/questions/12575068/how-to-get-the-result-of-onpostexecute-to-main-activity-because-asynctask-is-a
+     */
     public interface AsyncResponse {
         void processFinish(ArrayList<Zone> data);
     }
@@ -39,6 +45,11 @@ public class AsyncGetZonesTask extends AsyncTask<Void, Void, ArrayList<Zone>> {
         this.delegate = delegate;
     }
 
+    /**
+     * Async task of interacting with PHP-script and returning an ArrayList of zones from database
+     * @param voids no input arguments
+     * @return ArrayList<Zone> list of zones from DB
+     */
     @Override
     protected ArrayList<Zone> doInBackground(Void... voids) {
         Log.d(LOG_TAG, "Attempting to get zones by calling PHP-script... ");
@@ -100,6 +111,11 @@ public class AsyncGetZonesTask extends AsyncTask<Void, Void, ArrayList<Zone>> {
         return zones;
     }
 
+    /**
+     * onPostExecute used to return results
+     * @param data ArrayList of found zones
+     * @return void
+     */
     @Override
     protected void onPostExecute(ArrayList<Zone> data) {
         super.onPostExecute(data);

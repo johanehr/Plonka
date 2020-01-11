@@ -47,6 +47,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * EndShiftActivity is used when submitting a finished work shift by uploading collected data to database
+ */
 public class EndShiftActivity extends AppCompatActivity implements AbandonShiftDialogFragment.AbandonShiftDialogListener {
 
     private static final String LOG_TAG = "PLONKA_END_SHIFT_ACTIVITY";
@@ -69,6 +72,10 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
     private ImageButton photoButton;
     private Vibrator vibrator;
 
+    /**
+     * Sets up the activity, with buttons for abandoning shift and submitting the collected data, as well as a photo intent button
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +107,10 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         photoButton = findViewById(R.id.photoButton);
 
         abandonButton.setOnClickListener(new View.OnClickListener() {
+            /**
+             * Vibration effect and abandon shift dialog shown
+             * @param v button with listener
+             */
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "Pressed abandon button!");
@@ -109,6 +120,10 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         });
 
         submitPhotoButton.setOnClickListener(new View.OnClickListener() {
+            /**
+             * Vibration effect and upload collected data to database
+             * @param v button with listener
+             */
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "Pressed submit button!");
@@ -117,8 +132,12 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
             }
         });
 
-        // Based on example at: https://developer.android.com/training/camera/photobasics.html
         photoButton.setOnClickListener(new ImageButton.OnClickListener() {
+            /**
+             * Launch the camera to submit a photo of collected litter by trash can
+             * Based on example at: https://developer.android.com/training/camera/photobasics.html
+             * @param v button with listener
+             */
             public void onClick(View v) {
                 Log.d(LOG_TAG, "Pressed photo button!");
                 // Code here executes on main thread after user presses button
@@ -142,20 +161,32 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         });
     }
 
+    /**
+     * Instead of ending activity, provide user with a prompt
+     * @return void
+     */
     @Override
     public void onBackPressed() {
         showAbandonShiftDialog();
     }
 
+    /**
+     * Show the abandon shift dialog
+     * @return void
+     */
     private void showAbandonShiftDialog() {
         Log.i(LOG_TAG, "showAbandonShiftDialog() called");
         AbandonShiftDialogFragment newFragment = new AbandonShiftDialogFragment();
         newFragment.show(getSupportFragmentManager(), "abandonShift");
     }
 
-    // The dialog fragment receives a reference to this Activity through the
-    // Fragment.onAttach() callback, which it uses to call the following methods
-    // defined by the EndShiftDialogFragment.EndShiftDialogListener interface
+    /**
+     * The dialog fragment receives a reference to this Activity through the
+     * Fragment.onAttach() callback, which it uses to call the following methods
+     * defined by the EndShiftDialogFragment.EndShiftDialogListener interface
+     * Clears the log file and ends the activity
+     * @param dialog dialogfragment which created call
+     */
     @Override
     public void onDialogPositiveClick(DialogFragment dialog) {
         // User touched the dialog's positive button
@@ -164,12 +195,23 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         finish();
     }
 
+    /**
+     * The dialog fragment receives a reference to this Activity through the
+     * Fragment.onAttach() callback, which it uses to call the following methods
+     * defined by the EndShiftDialogFragment.EndShiftDialogListener interface
+     * Does nothing, simply avoids ending the activity, see onDialogPositiveClick
+     * @param dialog dialogfragment which created call
+     */
     @Override
     public void onDialogNegativeClick(DialogFragment dialog) {
         // User touched the dialog's negative button, just cancels.
         Log.d(LOG_TAG, "onDialogNegativeClick() called");
     }
 
+    /**
+     * Read information saved in the log file, in case session was cut short or returned to
+     * @return contents of log file
+     */
     private ArrayList<SessionLog> readLogFile(){
         ArrayList<SessionLog> sessionLogList = new ArrayList<>();
         try {
@@ -201,6 +243,10 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         return sessionLogList;
     }
 
+    /**
+     * Attempt to delete the log file
+     * @return void
+     */
     private void clearLogFile(){
         File file = new File(getApplicationContext().getFilesDir(), logFileName);
         if(file.delete()){
@@ -211,9 +257,21 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         }
     }
 
-    // Upload image and session information to webserver, partially based on example at https://stackoverflow.com/questions/34915556/post-a-file-with-other-form-data-using-httpurlconnection, https://stackoverflow.com/questions/19026256/how-to-upload-multipart-form-data-and-image-to-server-in-android/26145565#26145565
-    private void uploadSessionToDb() {
-        class AsyncUploadSessionTask extends AsyncTask<Void, Void, String> {
+    /**
+     * Upload image and session information to webserver, partially based on examples at:
+     * https://stackoverflow.com/questions/34915556/post-a-file-with-other-form-data-using-httpurlconnection,
+     * https://stackoverflow.com/questions/19026256/how-to-upload-multipart-form-data-and-image-to-server-in-android/26145565#26145565
+     */
+     private void uploadSessionToDb() {
+         /**
+          * Internal AsyncTask, since only used here that returns a result String
+          */
+         class AsyncUploadSessionTask extends AsyncTask<Void, Void, String> {
+             /**
+              * Body of async task, which uploads information to database if user can be authenticated
+              * @param voids no input
+              * @return result string
+              */
             @Override
             protected String doInBackground(Void... voids) {
                 Log.i(LOG_TAG, "called doInBackground()");
@@ -322,6 +380,10 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
                 return res; // If success is included in php output, SQL insert worked!
             }
 
+             /**
+              * Used as part of AsyncTask override
+              * @param res result
+              */
             @Override
             protected void onPostExecute(String res) {
                 super.onPostExecute(res);
@@ -332,7 +394,7 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         AsyncUploadSessionTask uploadShiftTask = new AsyncUploadSessionTask();
         String uploadShiftOutput = "AsyncUploadSessionTask failed"; // Changed if successful
         try {
-            uploadShiftOutput = uploadShiftTask.execute().get();
+            uploadShiftOutput = uploadShiftTask.execute().get(); // Get async response on demand, make "synchronous"
         } catch (Exception e) {
             Log.e(LOG_TAG, "AsyncUploadSessionTask.execute() failed: " + e.toString());
         }
@@ -350,9 +412,13 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         Log.i(LOG_TAG, "Exit uploadSessionToDb()");
     }
 
+    /**
+     * Create an image file name based on a provided timestamp and user id, used to match photo to database listing if photo is uploaded
+     * @param timestamp timestamp
+     * @param userId logged in user's unique id
+     * @throws IOException
+     */
     private void createImageFile(String timestamp, Integer userId) throws IOException {
-        // Create an image file name
-
         String imageFileName = Integer.toString(userId) + "_" + timestamp ;
         Log.i(LOG_TAG, "imageFileName: "+imageFileName);
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
@@ -372,11 +438,10 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             try {
                 Log.d(LOG_TAG, "Image saved at specified path!");
-                currentPhotoPath = tempCurrentPhotoPath; // No longer temporary
+                currentPhotoPath = tempCurrentPhotoPath; // No longer temporary if activity has RESULT_OK
                 photoFileName = tempPhotoFileName;
                 File file = new File(currentPhotoPath);
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(getApplicationContext().getContentResolver(), Uri.fromFile(file));
@@ -393,8 +458,12 @@ public class EndShiftActivity extends AppCompatActivity implements AbandonShiftD
         }
     }
 
-    // Generate a single String to save in database on repeating format: <timestamp>,<latitude>,<longitude>,<isInsideZone? true/false>;
-    // Split on ';' to get each SessionLog, and then on ',' to get individual values.
+    /**
+     * Generate a single String to save in database on repeating format: <timestamp>,<latitude>,<longitude>,<isInsideZone? true/false>;
+     * Split on ';' to get each SessionLog, and then on ',' to get individual values.
+     * @param sessions list of session log items to be included in output string
+     * @return long string to be saved in single field in database
+     */
     private String generateSessionsStringForDb(ArrayList<SessionLog> sessions){
         String stringForDb = "";
         for (SessionLog s : sessions){

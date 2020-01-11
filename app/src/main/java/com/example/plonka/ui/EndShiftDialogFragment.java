@@ -10,9 +10,16 @@ import androidx.fragment.app.DialogFragment;
 
 import com.example.plonka.R;
 
+/**
+ * Custom DialogFragment asking the user whether they want to finish an ongoing work shift
+ */
 public class EndShiftDialogFragment extends DialogFragment {
 
-
+    /**
+     * Constructor that sets up the dialog with end shift and keep working buttons
+     * @param savedInstanceState unused, used when overriding
+     * @return dialog that was set up
+     */
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
@@ -37,9 +44,10 @@ public class EndShiftDialogFragment extends DialogFragment {
         return builder.create();
     }
 
-    /* The activity that creates an instance of this dialog fragment must
+    /** The activity that creates an instance of this dialog fragment must
      * implement this interface in order to receive event callbacks.
-     * Each method passes the DialogFragment in case the host needs to query it. */
+     * Each method passes the DialogFragment in case the host needs to query it.
+     */
     public interface EndShiftDialogListener {
         public void onDialogPositiveClick(DialogFragment dialog);
         public void onDialogNegativeClick(DialogFragment dialog);
@@ -48,7 +56,9 @@ public class EndShiftDialogFragment extends DialogFragment {
     // Use this instance of the interface to deliver action events
     EndShiftDialogListener listener;
 
-    // Override the Fragment.onAttach() method to instantiate the NoticeDialogListener
+    /** Override the Fragment.onAttach() method to instantiate the AbandonShiftDialogListener
+     * @param context to attach dialog to
+     */
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);

@@ -15,7 +15,10 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
 
-// Good guide: https://medium.com/@suragch/android-asynctasks-99e501e637e5
+/**
+ * AsyncGetZonesTask is used to authenticate user login with an online database by calling a PHP-script
+ * This guide was used as inspiration: https://medium.com/@suragch/android-asynctasks-99e501e637e5
+ */
 public class AsyncLoginTask extends AsyncTask<String, Void, String[]> {
 
     // From: https://stackoverflow.com/questions/12575068/how-to-get-the-result-of-onpostexecute-to-main-activity-because-asynctask-is-a
@@ -36,6 +39,11 @@ public class AsyncLoginTask extends AsyncTask<String, Void, String[]> {
         this.delegate = delegate;
     }
 
+    /**
+     * Async task of interacting with PHP-script and attempting to authenticate user
+     * @param argv provided user and password
+     * @return String[] with user info if authenticated
+     */
     @Override
     protected String[] doInBackground(String... argv) {
         Log.v(LOG_TAG, "Attempting to log in user by calling PHP-script... ");
@@ -118,6 +126,11 @@ public class AsyncLoginTask extends AsyncTask<String, Void, String[]> {
         return userData; // If only contains 1 String, then this is error msg. Else, actual data
     }
 
+    /**
+     * onPostExecute used to return results
+     * @param data String[] of user data
+     * @return void
+     */
     @Override
     protected void onPostExecute(String[] data) {
         super.onPostExecute(data);

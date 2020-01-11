@@ -4,7 +4,6 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import com.example.plonka.Shift;
-import com.google.android.gms.maps.model.LatLng;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -19,10 +18,16 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-// Good guide: https://medium.com/@suragch/android-asynctasks-99e501e637e5
+/**
+ * AsyncGetShiftsTask is used to fetch completed shifts from an online database by calling a PHP-script
+ * This guide was used as inspiration: https://medium.com/@suragch/android-asynctasks-99e501e637e5
+ */
 public class AsyncGetShiftsTask extends AsyncTask<String, Void, ArrayList<Shift>> {
 
-    // From: https://stackoverflow.com/questions/12575068/how-to-get-the-result-of-onpostexecute-to-main-activity-because-asynctask-is-a
+    /**
+     * Interface used to receive the response from async task
+     * Inspired by: https://stackoverflow.com/questions/12575068/how-to-get-the-result-of-onpostexecute-to-main-activity-because-asynctask-is-a
+     */
     public interface AsyncResponse {
         void processFinish(ArrayList<Shift> data);
     }
@@ -40,6 +45,11 @@ public class AsyncGetShiftsTask extends AsyncTask<String, Void, ArrayList<Shift>
         this.delegate = delegate;
     }
 
+    /**
+     * Async task of interacting with PHP-script and returning an ArrayList of found shifts from DB
+     * @param args String arguments containing userId and userPw. Naively assumed to be in correct order.
+     * @return ArrayList<Shift> list of shifts belonging to the provided user. Empty if unsuccessful.
+     */
     @Override
     protected ArrayList<Shift> doInBackground(String... args) {
         Log.d(LOG_TAG, "Attempting to get shifts by calling PHP-script... ");
@@ -100,7 +110,7 @@ public class AsyncGetShiftsTask extends AsyncTask<String, Void, ArrayList<Shift>
 
                 // Naively assume known number of lines to read, all expected info returned
                 for (int shift = 0; shift < numShifts; shift++) {
-                    Log.d(LOG_TAG, " << Reading shift number "+shift);
+                    Log.d(LOG_TAG, " >> Reading shift number "+shift);
                     String sep = reader.readLine();     // ---
                     String zones = reader.readLine();   // zone_ids field from DB
                     String info = reader.readLine();    // information field from DB
@@ -124,6 +134,11 @@ public class AsyncGetShiftsTask extends AsyncTask<String, Void, ArrayList<Shift>
         return shifts;
     }
 
+    /**
+     * onPostExecute used to return results
+     * @param data ArrayList of found shifts
+     * @return void
+     */
     @Override
     protected void onPostExecute(ArrayList<Shift> data) {
         super.onPostExecute(data);

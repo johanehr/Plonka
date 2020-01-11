@@ -56,6 +56,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 
+/**
+ * ShiftActivity is used when currently working a shift, and logs the user's location continuously (screen kept on)
+ */
 public class ShiftActivity extends FragmentActivity implements OnMapReadyCallback, EndShiftDialogFragment.EndShiftDialogListener {
 
     private GoogleMap mMap;
@@ -80,6 +83,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     private static final String[] permissions = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
     private static final Long leftZoneMaximum = 120000L; //ms -> 120s -> 2 min
 
+    /**
+     * Sets up the UI provided that the required permissions are granted
+     * @param savedInstanceState not used
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,6 +117,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Initializes the UI for the shift activity and sets up necessary files, location services, etc
+     * @return void
+     */
     public void initializeComponents() {
 
         Log.d(LOG_TAG, "called initializeComponents()");
@@ -140,6 +151,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         locationCallback = new LocationCallback() {
+            /**
+             * Receives and logs the location result and checks if user is currently in the shift's related zone
+             * @param locationResult result from location request
+             */
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult == null) {
@@ -203,6 +218,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         // Set up stopWorkingButton
         stopWorkingButton = findViewById(R.id.stopWorkingButton);
         stopWorkingButton.setOnClickListener(new View.OnClickListener() {
+            /**
+             * Vibration effect added upon clicking stop working button, and shows end shift dialog
+             * @param v button with listener
+             */
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "Pressed stop working button!");
@@ -214,6 +233,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         // Set up myLocationButton
         fabButton = findViewById(R.id.myLocationButton);
         fabButton.setOnClickListener(new View.OnClickListener() {
+            /**
+             * Vibration effect added upon clicking fab button, and moves camera to current location on map
+             * @param v button with listener
+             */
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "Pressed FAB!");
@@ -254,6 +277,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
      * If Google Play services is not installed on the device, the user will be prompted to install
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
+     *
+     * Sets up the map UI
+     *
+     * @param googleMap the map used when callback made
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -294,12 +321,20 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         addZoneHolesToMap(shiftZones);
     }
 
-    // Inspired by: https://developer.android.com/training/location/receive-location-updates
+    /**
+     * Starts location updates
+     * Inspired by: https://developer.android.com/training/location/receive-location-updates
+     * @return void
+     */
     private void startLocationUpdates() {
         Log.d(LOG_TAG, "startLocationUpdates() called");
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
     }
 
+    /**
+     * When activity is resumed, location updates are also resumed
+     * @return void
+     */
     @Override
     public void onResume() {
         Log.d(LOG_TAG, "called onResume()");
@@ -309,6 +344,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * When activity is paused, location updates are also paused
+     * @return void
+     */
     @Override
     public void onPause() {
         Log.d(LOG_TAG, "called onPause()");
@@ -319,7 +358,7 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
     }
 
     /**
-     * Callback function when requesting permissions, to verify that user allows app recording behavior.
+     * Callback function when requesting permissions, to verify that user allows location recording behavior.
      *
      * @param requestCode  the request code used when triggering callback
      * @param permissions  array containing the permissions that were requested
@@ -344,6 +383,11 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Checks whether the required permissions have been granted by the user
+     * @param permissions permissions to check
+     * @return boolean, whether permissions granted
+     */
     public boolean checkPermissions(String... permissions) {
         if (permissions != null) {
             for (String permission : permissions) {
@@ -355,7 +399,12 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         return true;
     }
 
-    // Note: Shading does not work well with overlapping holes - but outlines still show up and regular logic works
+    /**
+     * Add holes in the map overlay, to show where the user is permitted to be
+     * Note: Shading does not work well with overlapping holes - but outlines still show up and regular logic works
+     * @param activeZones the zones to include as holes
+     * @return void
+     */
     private void addZoneHolesToMap(ArrayList<Zone> activeZones) {
         final float delta = 0.0001f;
         LatLng[] wholeWorld = new LatLng[9];
@@ -380,28 +429,43 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
             polyOpts.addHole(coordsIterable);
         }
 
-        Polygon polygon1 = mMap.addPolygon(polyOpts);
         // Store a data object with the polygon, used here to indicate an arbitrary type.
+        Polygon polygon1 = mMap.addPolygon(polyOpts);
         polygon1.setTag("A");
         polygon1.setStrokeWidth(6); // px width of stroke
         polygon1.setStrokeColor(0xffff8800); // Opaque orange
         polygon1.setFillColor(0x88222222); // Transparent dark grey defined as ARGB
     }
 
+    /**
+     * When user presses back button, don't leave activity, but rather prompt user for confirmation
+     * @return void
+     */
     @Override
     public void onBackPressed() {
         showEndShiftDialog();
     }
 
+    /**
+     * Show a dialog prompting user whether to end the shift.
+     * See onDialogPositive/NegativeClick for resulting behavior.
+     * @return void
+     */
     private void showEndShiftDialog() {
         Log.i(LOG_TAG, "showEndShiftDialog() called");
         EndShiftDialogFragment newFragment = new EndShiftDialogFragment();
         newFragment.show(getSupportFragmentManager(), "endShift");
     }
 
-    // The dialog fragment receives a reference to this Activity through the
-    // Fragment.onAttach() callback, which it uses to call the following methods
-    // defined by the EndShiftDialogFragment.EndShiftDialogListener interface
+    /**
+     * The dialog fragment receives a reference to this Activity through the
+     * Fragment.onAttach() callback, which it uses to call the following methods
+     * defined by the EndShiftDialogFragment.EndShiftDialogListener interface
+     *
+     * Ends the shift if user confirms prompt
+     *
+     * @param dialog DialogFragment that invoked callback
+     */
     @Override
     public void onDialogPositiveClick(DialogFragment dialog) {
         // User touched the dialog's positive button
@@ -409,12 +473,25 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         endShift();
     }
 
+    /**
+     * The dialog fragment receives a reference to this Activity through the
+     * Fragment.onAttach() callback, which it uses to call the following methods
+     * defined by the EndShiftDialogFragment.EndShiftDialogListener interface
+     *
+     * Do nothing if user cancels prompt
+     *
+     * @param dialog DialogFragment that invoked callback
+     */
     @Override
     public void onDialogNegativeClick(DialogFragment dialog) {
         // User touched the dialog's negative button, just cancels.
         Log.d(LOG_TAG, "onDialogNegativeClick() called");
     }
 
+    /**
+     * End the current shift by writing to the log file, so that EndShiftActivity can post shift information to database when transitioned to
+     * @return void
+     */
     private void endShift() {
         Log.i(LOG_TAG, "endShift() called");
 
@@ -440,6 +517,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         finish(); // Won't return to this activity
     }
 
+    /**
+     * Check whether the user's location is within any of the current zones
+     * @return boolean, whether user is in any of the current zones
+     */
     private boolean checkInsideZone() {
         for (Zone z : shiftZones) {
             if (PolyUtil.containsLocation(userLocation, Arrays.asList(z.getCoords()), true)) {
@@ -449,6 +530,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         return false;
     }
 
+    /**
+     * Write to a log file when necessary, which can be parsed later
+     * @return boolean, whether file was written to
+     */
     public boolean writeLogFile(){
         try {
             Log.i(LOG_TAG, "Re-writing session log file:");
@@ -466,6 +551,10 @@ public class ShiftActivity extends FragmentActivity implements OnMapReadyCallbac
         return true;
     }
 
+    /**
+     * Parses the log information from file if present.
+     * @return ArrayList containing the shift information
+     */
     public ArrayList<SessionLog> readLogFile(){
         ArrayList<SessionLog> sessionLogList = new ArrayList<>();
         try {

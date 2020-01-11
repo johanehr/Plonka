@@ -6,13 +6,10 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 
 import com.example.plonka.ui.login.LoginActivity;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 
-import android.os.Handler;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.text.SpannableString;
@@ -38,9 +35,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
-import java.util.regex.Pattern;
 
-
+/**
+ * RegisterUserActivity is launched from LoginActivity to register a new user to the online database through an invoked PHP-script
+ */
 public class RegisterUserActivity extends AppCompatActivity {
 
     private String LOG_TAG = "PLONKA_REGISTER_USER";
@@ -63,6 +61,11 @@ public class RegisterUserActivity extends AppCompatActivity {
     private String str_password_confirm;
     private boolean terms_accepted;
 
+    /**
+     * Sets up the UI (form fields, buttons, etc)
+     * @param savedInstanceState unused
+     * @return void
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,6 +105,10 @@ public class RegisterUserActivity extends AppCompatActivity {
 
         continueButton = findViewById(R.id.buttonContinue);
         continueButton.setOnClickListener(new View.OnClickListener() {
+            /**
+             * Vibrate and attempt to register user to database
+             * @param view button with listener
+             */
             @Override
             public void onClick(View view) {
                 Log.i(LOG_TAG, "User clicked Continue button");
@@ -115,7 +122,10 @@ public class RegisterUserActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
-    // Check whether provided strings are valid. Show error msg if not.
+    /**
+     * Check whether provided form strings are valid. Displays error message in Snackbar if not.
+     * @return boolean, whether form strings are valid or not
+     */
     public boolean validateRegistrationDetails(){
         boolean valid = true;
         String feedbackMsg = "Registering user...";
@@ -151,6 +161,10 @@ public class RegisterUserActivity extends AppCompatActivity {
         return valid;
     }
 
+    /**
+     * Gather the form strings from fields to local variables
+     * @return void
+     */
     public void gatherContent() {
         str_name = name.getText().toString();
         str_email = email.getText().toString();
@@ -170,18 +184,26 @@ public class RegisterUserActivity extends AppCompatActivity {
                 +terms_accepted);
     }
 
-    // https://www.tutorialspoint.com/android/android_php_mysql.htm
-    // https://androidjson.com/android-php-send-data-mysql-database/
-
+    /**
+     * Register the user to online SQL database by invoking a PHP-script on webserver.
+     * - https://www.tutorialspoint.com/android/android_php_mysql.htm
+     * - https://androidjson.com/android-php-send-data-mysql-database/
+     */
     public void registerUserToDb(){
-
+        /**
+         * Custom AsyncTask used to post form data, String returned
+         */
         class AsyncRegisterTask extends AsyncTask<Void, Void, String> {
+            /**
+             * Call the PHP-script with form data through POST and read the results to check whether it worked.
+             * @param voids no arguments
+             * @return String result from webserver
+             */
             @Override
             protected String doInBackground(Void... voids) {
                 Log.i(LOG_TAG, "called doInBackground()");
 
                 HashMap<String, String> params = new HashMap<>();;
-
                 params.put("name", str_name);
                 params.put("email", str_email);
                 params.put("phone", str_phone);
@@ -204,7 +226,6 @@ public class RegisterUserActivity extends AppCompatActivity {
                     }
                     i++;
                 }
-
                 Log.i(LOG_TAG, "Built string: "+sbParams.toString());
 
                 HttpURLConnection conn;
@@ -249,6 +270,10 @@ public class RegisterUserActivity extends AppCompatActivity {
                 return res; // If success is included in php output, SQL insert worked!
             }
 
+            /**
+             * Create debug log message regarding result from webserver
+             * @param res result string from webserver
+             */
             @Override
             protected void onPostExecute(String res){
                 super.onPostExecute(res);
@@ -262,7 +287,6 @@ public class RegisterUserActivity extends AppCompatActivity {
                 Log.d(LOG_TAG, msg);
             }
         }
-
 
         Log.i(LOG_TAG, "Called postToDb()");
         AsyncRegisterTask registerTask = new AsyncRegisterTask();

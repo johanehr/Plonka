@@ -10,10 +10,18 @@ import androidx.fragment.app.DialogFragment;
 
 import com.example.plonka.R;
 
+/**
+ * Custom dialog to prompt user to start a work shift
+ */
 public class StartShiftDialogFragment extends DialogFragment {
 
     public static final int CODE = 567567; // Used for
 
+    /**
+     * Sets up the dialog fragment buttons for starting a shift or cancelling
+     * @param savedInstanceState unused
+     * @return created dialog
+     */
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction

@@ -23,6 +23,9 @@ import java.util.List;
 import static com.example.plonka.MathUtil.*;
 import static java.lang.Math.*;
 
+/**
+ * This code has been taken from: https://github.com/googlemaps/android-maps-utils
+ */
 public class SphericalUtil {
 
     private SphericalUtil() {

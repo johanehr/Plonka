@@ -10,6 +10,7 @@ import com.example.plonka.data.LoginRepository;
 /**
  * ViewModel provider factory to instantiate LoginViewModel.
  * Required given LoginViewModel has a non-empty constructor
+ * This class was generated through File > New > Activity > Login Activity in Android Studio
  */
 public class LoginViewModelFactory implements ViewModelProvider.Factory {
 

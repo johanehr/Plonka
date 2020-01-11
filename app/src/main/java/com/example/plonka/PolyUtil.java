@@ -26,6 +26,9 @@ import static com.example.plonka.SphericalUtil.*;
 import static java.lang.Math.*;
 import static com.example.plonka.MathUtil.*;
 
+/**
+ * This code has been taken from: https://github.com/googlemaps/android-maps-utils
+ */
 public class PolyUtil {
 
     private PolyUtil() {
@@ -552,6 +555,9 @@ public class PolyUtil {
         return result.toString();
     }
 
+    /**
+     * Encodes to a StringBuffer
+     */
     private static void encode(long v, StringBuffer result) {
         v = v < 0 ? ~(v << 1) : v << 1;
         while (v >= 0x20) {

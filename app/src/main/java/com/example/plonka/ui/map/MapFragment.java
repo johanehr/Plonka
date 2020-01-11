@@ -52,6 +52,9 @@ import java.util.Arrays;
 
 import static android.content.Context.VIBRATOR_SERVICE;
 
+/**
+ * MapFragment is used by HubActivity and allows user to view current work zones and to start a work shift when inside a zone
+ */
 public class MapFragment extends Fragment implements OnMapReadyCallback{
 
     private GoogleMap mMap;
@@ -74,6 +77,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     private static final int REQUEST_LOCATION_PERMISSIONS = 111;
     private String [] permissions = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
 
+    /**
+     * Set up the UI when the fragment lifecycle begins, once permissions granted
+     * @param inflater necessary for inflating view
+     * @param container necessary for inflating view
+     * @param savedInstanceState provided instance state, not used here
+     * @return View the view that was created by the fragment
+     */
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
@@ -92,6 +102,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         return root;
     }
 
+    /**
+     * Initializes the UI elements and required location provider, etc
+     */
     public void initializeComponents(){
 
         vibrator = (Vibrator) getActivity().getSystemService(VIBRATOR_SERVICE);
@@ -102,6 +115,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         locationRequest.setInterval(2000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationCallback = new LocationCallback() {
+            /**
+             * Receive the location result and handles logic to enable/disable start shift button based on whether a zone is entered
+             * @param locationResult received location
+             */
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 Log.d(LOG_TAG, "called locationCallback()");
@@ -158,6 +175,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         // Set up myLocationButton
         fabButton = root.findViewById(R.id.myLocationButton);
         fabButton.setOnClickListener(new View.OnClickListener() {
+            /**
+             * When fab button is pressed, the map's camera is centered on current user location. Also has a vibration effect.
+             * @param v button with listener
+             * @return void
+             */
             @Override
             public void onClick(View v) {
                 Log.d(LOG_TAG, "Pressed FAB!");
@@ -182,6 +204,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         // Set up startWorkingButton
         startWorkingButton = root.findViewById(R.id.startWorkingButton);
         startWorkingButton.setOnClickListener(new View.OnClickListener() {
+            /**
+             * When start working button is pressed, the user is prompted whether to start a work shift
+             * @param v button with listener
+             * @return void
+             */
             @Override
             public void onClick(View v) {
                 if (insideZone){ // Additional check
@@ -195,6 +222,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         Log.d(LOG_TAG, " > setup startWorkingButton");
     }
 
+    /**
+     * Checks whether the required permissions have been granted by the user
+     * @param permissions permissions to check
+     * @return boolean, whether permissions granted
+     */
     public boolean checkPermissions(String... permissions) {
         if (permissions != null) {
             for (String permission : permissions) {
@@ -206,12 +238,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         return true;
     }
 
+    /**
+     * Adds log message and calls parent function
+     * @param savedInstanceState instance state
+     * @return void
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.d(LOG_TAG, "called onCreate()");
         super.onCreate(savedInstanceState);
     }
 
+    /**
+     * Adds log message and calls parent function
+     * @return void
+     */
     @Override
     public void onStart() {
         Log.d(LOG_TAG, "called onStart()");
@@ -226,6 +267,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
      * If Google Play services is not installed on the device, the user will be prompted to install
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
+     *
+     * Sets up the map UI with zones from DB, and moves camera to current location
+     *
+     * @param googleMap map invoking callback
+     * @return void
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -262,16 +308,23 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
                 }
             }
         });
-
         requestZonesFromDb();
     }
 
-    // Inspired by: https://developer.android.com/training/location/receive-location-updates
+    /**
+     * Starts location updates
+     * Inspired by: https://developer.android.com/training/location/receive-location-updates
+     * @return void
+     */
     private void startLocationUpdates() {
         Log.d(LOG_TAG, "startLocationUpdates() called");
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
     }
 
+    /**
+     * When activity is resumed, location updates are also resumed
+     * @return void
+     */
     @Override
     public void onResume() {
         Log.d(LOG_TAG, "called onResume()");
@@ -281,6 +334,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         }
     }
 
+    /**
+     * When activity is paused, location updates are also paused
+     * @return void
+     */
     @Override
     public void onPause() {
         Log.d(LOG_TAG, "called onPause()");
@@ -291,7 +348,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
     }
 
     /**
-     * Callback function when requesting permissions, to verify that user allows app recording behavior.
+     * Callback function when requesting permissions, to verify that user allows GPS-location being used.
      *
      * @param  requestCode  the request code used when triggering callback
      * @param  permissions  array containing the permissions that were requested
@@ -316,6 +373,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         }
     }
 
+    /**
+     * Gathers zones from online database by calling a PHP-script running on webserver.
+     * Zones with sufficient funds are added to the map UI.
+     * @return void
+     */
     private void requestZonesFromDb(){
         AsyncGetZonesTask zoneTask = new AsyncGetZonesTask(new AsyncGetZonesTask.AsyncResponse(){
             @Override
@@ -339,6 +401,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         }
     }
 
+    /**
+     * Adds a zone to the map UI as an orange polygon
+     * @param coords latitude and longitude values for polygon vertices of zone
+     * @return void
+     */
     private void addZoneToMap(LatLng[] coords){
         PolygonOptions polyOpts = new PolygonOptions().clickable(true).add(coords);
         Polygon polygon1 = mMap.addPolygon(polyOpts);
@@ -349,13 +416,22 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         polygon1.setFillColor(0x66ff8800); // Transparent orange defined as ARGB
     }
 
+    /**
+     * Shows the user a prompt on whether to start a workshift
+     * @return void
+     */
     private void showStartShiftDialog(){
         StartShiftDialogFragment newFragment = new StartShiftDialogFragment();
         newFragment.setTargetFragment(this, StartShiftDialogFragment.CODE); // Sets request code to be used by onActivityResult()
         newFragment.show(getFragmentManager(), "startShift");
     }
 
-    // Use as callback for StartShiftDialogFragment choice
+    /** Callback for StartShiftDialogFragment choice
+     *
+     * @param requestCode request type identifier
+     * @param resultCode request result identifier
+     * @param data result data, not used
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch(requestCode) {
@@ -369,6 +445,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         }
     }
 
+    /**
+     * Start a shift by invoking the startShiftInterface (see HubActivity)
+     * @return void
+     */
     public void startShift(){
         Log.i(LOG_TAG, "User wants to proceed by starting shift!");
         String currentZonesList = "";
@@ -380,6 +460,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         listener.startShiftInterface(currentZones);
     }
 
+    /**
+     * Interface to start a work shift
+     */
     public interface startShiftListener{
         public void startShiftInterface(ArrayList<Zone> shiftZones);
     }
@@ -392,7 +475,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
         try {
             listener = (startShiftListener) context;
         } catch (ClassCastException castException) {
-            /** The activity does not implement the listener. */
+            /* The activity does not implement the listener. */
         }
     }
 }

@@ -20,6 +20,7 @@ import static java.lang.Math.*;
 
 /**
  * Utility functions that are used my both PolyUtil and SphericalUtil.
+ * This code has been taken from: https://github.com/googlemaps/android-maps-utils
  */
 class MathUtil {
     /**

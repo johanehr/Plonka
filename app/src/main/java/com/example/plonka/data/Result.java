@@ -8,6 +8,10 @@ public class Result<T> {
     private Result() {
     }
 
+    /**
+     * Generate a string representation
+     * @return String the string representation of the Result object
+     */
     @Override
     public String toString() {
         if (this instanceof Result.Success) {
@@ -20,7 +24,9 @@ public class Result<T> {
         return "no String representation of Result object";
     }
 
-    // Success sub-class
+    /**
+     * Sub-class for successful results
+     */
     public final static class Success<T> extends Result {
         private T data;
 
@@ -33,7 +39,9 @@ public class Result<T> {
         }
     }
 
-    // Error sub-class
+    /**
+     * Sub-class for error results
+     */
     public final static class Error extends Result {
         private Exception error;
 

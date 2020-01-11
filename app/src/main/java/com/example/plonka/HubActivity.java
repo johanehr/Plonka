@@ -28,12 +28,20 @@ import com.google.android.material.navigation.NavigationView;
 import java.io.Serializable;
 import java.util.ArrayList;
 
+/**
+ * Main activity in app where the user can navigate between multiple fragments
+ */
 public class HubActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, MapFragment.startShiftListener {
 
     private AppBarConfiguration mAppBarConfiguration;
     private LoggedInUser currentUser; // Contains necessary data for requesting data from DB
     private String LOG_TAG = "PLONKA_HUB_ACTIVITY";
 
+    /**
+     * Sets up the UI with a side drawer used to navigate to different fragments
+     * @param savedInstanceState unused
+     * @return void
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,6 +82,9 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
         Log.i(LOG_TAG, "Setup complete");
     }
 
+    /**
+     * Set up navigation flow between fragments
+     */
     @Override
     public boolean onSupportNavigateUp() {
         Log.i(LOG_TAG, "called onSupportNavigateUp()");
@@ -83,6 +94,11 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
     }
 
     // From: https://stackoverflow.com/questions/42297381/onclick-event-in-navigation-drawer
+
+    /**
+     * Handles special cases for intents invoked when clicking in navigation drawer menu items for getting in touch.
+     * @param item selected drawer menu item
+     */
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
 
@@ -112,6 +128,11 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
         return true;
     }
 
+    /**
+     * Initiate a phone dialer to get in contact with Plonka.
+     * TODO: Using dummy phone number
+     * @return void
+     */
     private void phoneCallback(){
         Log.d(LOG_TAG, "Pressed nav_support_phone");
         Intent call = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:+46701234567"));
@@ -120,6 +141,11 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
         }
     }
 
+    /**
+     * Initiate an email intent with some pre-filled information for Plonka representative to identify user
+     * TODO: Set up this email account
+     * @return void
+     */
     private void mailCallback(){
         Log.d(LOG_TAG, "Pressed nav_support_email");
         Intent email = new Intent(Intent.ACTION_SEND);
@@ -133,6 +159,11 @@ public class HubActivity extends AppCompatActivity implements NavigationView.OnN
         }
     }
 
+    /**
+     * Use an interface to handle when button to start a work shift is pressed in MapFragment
+     * @param zones the zones to include in started shift
+     * @return void
+     */
     @Override
     public void startShiftInterface(ArrayList<Zone> zones){
         Log.i(LOG_TAG, "RECEIVED START_SHIFT_INTERFACE!");

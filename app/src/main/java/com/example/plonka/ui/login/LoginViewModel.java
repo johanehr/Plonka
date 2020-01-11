@@ -5,13 +5,16 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import android.util.Log;
-import android.util.Patterns;
 
 import com.example.plonka.data.LoginRepository;
 import com.example.plonka.data.Result;
 import com.example.plonka.data.model.LoggedInUser;
 import com.example.plonka.R;
 
+/**
+ * LoginViewModel is used as part of the log in process.
+ * This class was partially generated through File > New > Activity > Login Activity in Android Studio
+ */
 public class LoginViewModel extends ViewModel {
 
     private MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
@@ -20,17 +23,33 @@ public class LoginViewModel extends ViewModel {
     private LoggedInUser currentUser;
     private String LOG_TAG = "PLONKA_LOGINVIEWMODEL";
 
+    /**
+     * Constructor, auto-generated
+     * @param loginRepository -
+     */
     LoginViewModel(LoginRepository loginRepository) {
         this.loginRepository = loginRepository;
     }
 
+    /**
+     * returns form state, auto-generated
+     * @return login form state
+     */
     LiveData<LoginFormState> getLoginFormState() {
         return loginFormState;
     }
 
+    /**
+     * returns login result, auto-generated
+     * @return login result
+     */
     LiveData<LoginResult> getLoginResult() { return loginResult; }
 
-    // Attempt to log in the user with specified personal number and password
+    /**
+     *  Attempt to log in the user with specified personal number and password
+     * @param user username (personal number), long required due to length
+     * @param password password
+      */
     public void login(Long user, String password) {
         Log.d(LOG_TAG, "login() called");
         Result<LoggedInUser> result = loginRepository.login(user, password);
@@ -46,10 +65,19 @@ public class LoginViewModel extends ViewModel {
         }
     }
 
+    /**
+     * Getter for current user
+     * @return LoggedInUser currently logged in user
+     */
     public LoggedInUser getCurrentUser(){
         return currentUser;
     }
 
+    /**
+     * Updates login data upon changes to the form and validates input
+     * @param username provided username
+     * @param password provided password
+     */
     public void loginDataChanged(String username, String password) {
         if (!isUserNameValid(username)) {
             loginFormState.setValue(new LoginFormState(R.string.invalid_username, null));
@@ -60,7 +88,11 @@ public class LoginViewModel extends ViewModel {
         }
     }
 
-    // A simple username validation check
+    /**
+     * validates username (personal number) to be 10 digits
+     * @param username_str personal number
+     * @return boolean, whether username is valid
+     */
     private boolean isUserNameValid(String username_str) {
 
         try{
@@ -80,7 +112,11 @@ public class LoginViewModel extends ViewModel {
         }
     }
 
-    // A simple password validation check, require at least 8 chars
+    /**
+     * A simple password validation check, require at least 8 chars
+     * @param password user-provided password
+     * @return boolean, whether password meets requirements
+     */
     private boolean isPasswordValid(String password) {
         return password != null && password.trim().length() > 8;
     }

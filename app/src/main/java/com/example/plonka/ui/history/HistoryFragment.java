@@ -16,6 +16,9 @@ import com.example.plonka.Shift;
 
 import java.util.ArrayList;
 
+/**
+ * HistoryFragment is used as part of HubActivity to display a history of previous shifts worked by the user, using database information
+ */
 public class HistoryFragment extends Fragment {
 
     private String LOG_TAG = "PLONKA_HISTORY_FRAGMENT";
@@ -29,6 +32,13 @@ public class HistoryFragment extends Fragment {
 
     private ArrayList<Shift> shiftList = new ArrayList<>();
 
+    /**
+     * Set up the UI with the history of user's work shifts when the fragment lifecycle begins
+     * @param inflater necessary for inflating view
+     * @param container necessary for inflating view
+     * @param savedInstanceState provided instance state, not used here
+     * @return View the view that was created by the fragment
+     */
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         View root = inflater.inflate(R.layout.fragment_history, container, false);
@@ -55,7 +65,7 @@ public class HistoryFragment extends Fragment {
             }
         });
         try{
-            shiftList = shiftsTask.execute(userId.toString(), userPw).get();
+            shiftList = shiftsTask.execute(userId.toString(), userPw).get(); // Wait for result from asynchronous task
         } catch (Exception e) {
             Log.e(LOG_TAG, "AsyncGetShiftsTask.execute() failed: "+e.toString());
         }
@@ -82,6 +92,4 @@ public class HistoryFragment extends Fragment {
             mAdapter.notifyDataSetChanged();
         }
     }
-
-
 }
